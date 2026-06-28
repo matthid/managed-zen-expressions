@@ -57,12 +57,9 @@ internal sealed class Parser
                 continue;
             }
 
-            var (ok, leftBp, rightBp) = InfixBinding(t);
-            if (!ok || leftBp < minBp) break;
-
-            Advance();
-
-            // `not in` compound operator (membership negation): x not in [...]
+            // `not in` (two-token), `in`, and the ternary `?:` are handled before
+            // the table-driven path because `Not`/`In`/`?` are not generic infix
+            // tokens there (InfixBinding returns false and would break the loop).
             if (t.Kind == TokenKind.Not && _tokens[_pos + 1].Kind == TokenKind.In)
             {
                 if (100 < minBp) break;
@@ -74,10 +71,29 @@ internal sealed class Parser
 
             if (t.Kind == TokenKind.In)
             {
+                if (100 < minBp) break;
+                Advance();
                 Node range = ParseInRight();
                 left = Nodes.In(left, range, negated: false);
                 continue;
             }
+
+            // Ternary parses its own branches, so handle it before the generic
+            // right-operand parse (which would otherwise consume the then-branch).
+            if (t.Kind == TokenKind.Question)
+            {
+                if (40 < minBp) break;
+                Advance();
+                Node thenBranch = ParseExpression(0);
+                Expect(TokenKind.Colon);
+                Node elseBranch = ParseExpression(0);
+                left = Nodes.Ternary(left, thenBranch, elseBranch);
+                continue;
+            }
+
+            var (ok, leftBp, rightBp) = InfixBinding(t);
+            if (!ok || leftBp < minBp) break;
+            Advance();
 
             Node right = ParseExpression(rightBp);
 
@@ -98,15 +114,6 @@ internal sealed class Parser
                 case TokenKind.Ge:       left = Nodes.Compare(CmpOp.Ge, left, right); break;
                 case TokenKind.And:      left = Nodes.Logical(left, right, and: true); break;
                 case TokenKind.Or:       left = Nodes.Logical(left, right, and: false); break;
-                case TokenKind.Question:
-                    // ternary: cond ? a : b
-                    {
-                        Node thenBranch = ParseExpression(0);
-                        Expect(TokenKind.Colon);
-                        Node elseBranch = ParseExpression(0);
-                        left = Nodes.Ternary(left, thenBranch, elseBranch);
-                        break;
-                    }
                 default:
                     throw new ZenException($"Unhandled infix token {t}");
             }
