@@ -146,6 +146,13 @@ public static class Scenarios
         list.Add(new() { Name = "heavy-sum-1k", Group = "heavy",
             Expression = "sum(data)", ContextJson = ctx1k });
 
+        // 1b) Heavy INTERMEDIATE allocation, SCALAR result. map() builds a 1000-element
+        // array that is consumed by sum() and never returned -> on native the array lives
+        // on the native heap (no GC) and only a number is marshalled back. This is the
+        // case that should favour native most.
+        list.Add(new() { Name = "heavy-sum-map-1k", Group = "heavy",
+            Expression = "sum(map(data, # * # + 1))", ContextJson = ctx1k });
+
         // 2) Heavy compute via a wide arithmetic expression (200 terms), scalar result.
         var sbA = new StringBuilder();
         var sbC = new StringBuilder("{");

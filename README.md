@@ -246,21 +246,29 @@ between **managed and manual-native**.)
 
 | Scenario (managed vs native) | Managed pure | Native pure | Managed JSON | Native JSON |
 | --- | ---: | ---: | ---: | ---: |
-| heavy-sum-1k (sum of 1 000, scalar result) | 3.5 µs | **2.95 µs** ✅ | 55.9 µs | **26.6 µs** ✅ |
-| heavy-arith-200 (200-term arithmetic, scalar) | **9.6 µs** | 9.5 µs | **31.7 µs** | 57.8 µs |
-| heavy-filter-1k (~500-element result) | **59.5 µs** | 108.8 µs | **107.3 µs** | 131.2 µs |
-| heavy-map-1k (1 000-element result) | **79.2 µs** | 194.8 µs | **135.3 µs** | 222.0 µs |
-| heavy-map-objects-100 (100 objects result) | **33.5 µs** | 94.7 µs | **58.1 µs** | 134.5 µs |
+| heavy-sum-1k (sum of 1 000, scalar result) | 3.9 µs | **3.2 µs** ✅ | 60.9 µs | **29.0 µs** ✅ |
+| heavy-sum-map-1k (intermediate 1 000-array, scalar result) | 101.7 µs | **78.0 µs** ✅ | 146.1 µs | **100.0 µs** ✅ |
+| heavy-arith-200 (200-term arithmetic, scalar) | **11.2 µs** | 10.5 µs | **34.2 µs** | 63.7 µs |
+| heavy-filter-1k (~500-element result) | **61.7 µs** | 110.6 µs | **121.3 µs** | 133.6 µs |
+| heavy-map-1k (1 000-element result) | **89.1 µs** | 234.4 µs | **157.5 µs** | 236.7 µs |
+| heavy-map-objects-100 (100 objects result) | **36.9 µs** | 97.6 µs | **64.7 µs** | 140.2 µs |
 
-The finding is the **opposite** of an allocation-driven crossover:
+The deciding factor is **where the allocation lives and what crosses back**:
 
-- **Native wins only on `heavy-sum-1k`** — heavy *compute* with a **scalar**
-  result. The cheap marshal (one number back) lets native's raw eval speed show
-  (pure: ~16% faster), and on the JSON path native is still **~2.1× faster** even
-  after the managed JSON reader was optimized.
-- **Managed wins every allocation-heavy scenario** (large result arrays/objects):
-  native must marshal the whole result back across the boundary, which dominates.
-  So *more allocations make managed's lead bigger, not smaller*.
+- **Native wins when the result is a scalar** (`heavy-sum-1k`, `heavy-sum-map-1k`):
+  only a number is marshalled back, so native's raw eval speed + serde show. The
+  standout is `heavy-sum-map-1k` — `sum(map(...))` builds a 1 000-element
+  *intermediate* array that is consumed and never returned. On native that array
+  lives on the **native heap (no GC)** and only the scalar crosses back — BDN
+  shows native's *managed* allocation at just **40 B**, vs **53 136 B** for
+  `heavy-map-1k` where the array *is* the result and must be parsed back. Native is
+  **~23% faster** here (pure). This is native's best case.
+- **Managed wins when the allocation is the result** (`heavy-map-1k`,
+  `heavy-filter-1k`, `heavy-map-objects-100`): native must marshal the whole
+  structure back across the boundary, which dominates. *More result allocations
+  make managed's lead bigger, not smaller.*
+- So the rule is symmetric and precise: **intermediate allocation that stays
+  native + scalar result → native; large result that must cross back → managed.**
 - **JSON reader optimized (3 iterations):** `ZenJson.Parse` went from `JsonDocument`
   → `Utf8JsonReader`+`ArrayPool` → a **UTF-16 `ReadOnlySpan<char>` parser** (reads
   the input string directly — no UTF-8 encode step, since `Utf8JsonReader` is

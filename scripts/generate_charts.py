@@ -255,29 +255,29 @@ grouped_bars(
 )
 
 # ---- heavy-load crossover (pure-eval, µs) ----
-HEAVY = ["sum-1k", "arith-200", "filter-1k", "map-1k", "map-obj-100"]
+HEAVY = ["sum-1k", "sum-map-1k", "arith-200", "filter-1k", "map-1k", "map-obj-100"]
 grouped_bars(
     series=[
-        ("Managed (pure)", MANAGED, [3.538, 9.639, 59.523, 79.245, 33.529]),
-        ("Native (pure)", NATIVE, [2.950, 9.520, 108.845, 194.779, 94.671]),
-        ("GoRules", GORULES, [162.722, 135.214, 281.302, 410.557, 272.453]),
+        ("Managed (pure)", MANAGED, [3.882, 101.689, 11.173, 61.738, 89.111, 36.948]),
+        ("Native (pure)", NATIVE, [3.211, 78.013, 10.473, 110.600, 234.443, 97.643]),
+        ("GoRules", GORULES, [185.075, 242.536, 147.910, 304.496, 502.190, 324.231]),
     ],
     categories=HEAVY,
-    title="Heavy load — pure-eval (pre-parsed context): native wins only on sum-1k",
-    note="log scale · lower is better · native edges ahead on scalar-result compute (sum-1k)",
+    title="Heavy load — pure-eval: native wins on scalar-result work (sum-1k, sum-map-1k)",
+    note="log scale · lower is better · sum-map-1k: intermediate array stays native, scalar returns -> native wins",
     fmt=fmt_us, fname="heavy-pure.svg",
 )
 
 # ---- heavy-load crossover (JSON-eval, µs) ----
 grouped_bars(
     series=[
-        ("Managed (JSON)", MANAGED, [55.85, 31.70, 107.33, 135.25, 58.08]),
-        ("Native (JSON)", NATIVE, [26.582, 57.751, 131.198, 222.036, 134.529]),
-        ("GoRules", GORULES, [185.433, 145.154, 312.494, 426.534, 299.844]),
+        ("Managed (JSON)", MANAGED, [60.881, 146.094, 34.198, 121.344, 157.453, 64.695]),
+        ("Native (JSON)", NATIVE, [29.010, 100.049, 63.697, 133.614, 236.741, 140.158]),
+        ("GoRules", GORULES, [203.108, 284.924, 155.876, 370.481, 487.269, 359.502]),
     ],
     categories=HEAVY,
-    title="Heavy load — JSON per call: native still leads on sum-1k after ZenJson opt (84→56 µs)",
-    note="log scale · lower is better · serde parses 1000-element arrays faster than managed",
+    title="Heavy load — JSON per call: native leads when allocation stays native + scalar returns",
+    note="log scale · lower is better · sum-1k / sum-map-1k favour native; map/filter (large result) favour managed",
     fmt=fmt_us, fname="heavy-json.svg",
 )
 
