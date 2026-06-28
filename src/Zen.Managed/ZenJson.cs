@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.Json;
@@ -15,72 +16,168 @@ namespace Zen.Managed;
 public static class ZenJson
 {
     public static ZenValue Parse(string json)
+        => string.IsNullOrEmpty(json) ? ZenValue.Null : Parse(json.AsSpan());
+
+    /// <summary>Parse JSON directly from a UTF-16 span — no UTF-8 encode step
+    /// (Utf8JsonReader is UTF-8-only, which would force one), and single-pass
+    /// (no JsonDocument pooled buffer / double number-parse). Each atom is read
+    /// once and placed straight into the value tree.</summary>
+    public static ZenValue Parse(ReadOnlySpan<char> s)
     {
-        if (string.IsNullOrEmpty(json)) return ZenValue.Null;
-        // Single-pass Utf8JsonReader → ZenValue. Avoids JsonDocument's pooled buffer
-        // and the double number-parse (JsonDocument tokenizes, then GetDouble re-parses);
-        // each number/atom is read exactly once and placed directly into the value tree.
-        var bytes = Encoding.UTF8.GetBytes(json);
-        var reader = new Utf8JsonReader(bytes, new JsonReaderOptions
-        {
-            AllowTrailingCommas = true,
-            CommentHandling = JsonCommentHandling.Skip,
-        });
-        if (!reader.Read()) return ZenValue.Null;
-        return Consume(ref reader);
+        int i = 0;
+        SkipWs(s, ref i);
+        return i < s.Length ? Consume(s, ref i) : ZenValue.Null;
     }
 
-    private static ZenValue Consume(ref Utf8JsonReader r)
+    private static void SkipWs(ReadOnlySpan<char> s, ref int i)
     {
-        switch (r.TokenType)
+        while (i < s.Length && s[i] <= ' ') i++;
+    }
+
+    private static ZenValue Consume(ReadOnlySpan<char> s, ref int i)
+    {
+        SkipWs(s, ref i);
+        char c = s[i];
+        switch (c)
         {
-            case JsonTokenType.Null: return ZenValue.Null;
-            case JsonTokenType.True: return ZenValue.True;
-            case JsonTokenType.False: return ZenValue.False;
-            case JsonTokenType.Number: return ZenValue.FromNumber(r.GetDouble());
-            case JsonTokenType.String: return ZenValue.FromString(r.GetString() ?? "");
-            case JsonTokenType.StartArray:
-            {
-                // ArrayPool-backed growth: avoids the ~log(n) resize allocations a
-                // List<> would create for large arrays (the heavy-load bottleneck).
-                var buf = ArrayPool<ZenValue>.Shared.Rent(16);
-                int n = 0;
-                try
-                {
-                    while (r.Read() && r.TokenType != JsonTokenType.EndArray)
-                    {
-                        if (n == buf.Length)
-                        {
-                            var bigger = ArrayPool<ZenValue>.Shared.Rent(buf.Length * 2);
-                            Array.Copy(buf, bigger, n);
-                            ArrayPool<ZenValue>.Shared.Return(buf);
-                            buf = bigger;
-                        }
-                        buf[n++] = Consume(ref r);
-                    }
-                    var exact = new ZenValue[n];
-                    Array.Copy(buf, exact, n);
-                    return ZenValue.FromArray(exact);
-                }
-                finally
-                {
-                    ArrayPool<ZenValue>.Shared.Return(buf);
-                }
-            }
-            case JsonTokenType.StartObject:
-            {
-                var dict = new Dictionary<string, ZenValue>(StringComparer.Ordinal);
-                while (r.Read() && r.TokenType == JsonTokenType.PropertyName)
-                {
-                    string key = r.GetString() ?? "";
-                    r.Read();
-                    dict[key] = Consume(ref r);
-                }
-                return ZenValue.FromObject(dict);
-            }
-            default:
-                throw new ZenException($"Unexpected JSON token {r.TokenType}");
+            case '{': return ReadObject(s, ref i);
+            case '[': return ReadArray(s, ref i);
+            case '"': return ZenValue.FromString(ReadString(s, ref i));
+            case 't': i += 4; return ZenValue.True;   // true
+            case 'f': i += 5; return ZenValue.False;  // false
+            case 'n': i += 4; return ZenValue.Null;   // null
+            default:   return ZenValue.FromNumber(ReadNumber(s, ref i));
         }
+    }
+
+    private static ZenValue ReadArray(ReadOnlySpan<char> s, ref int i)
+    {
+        i++; // consume '['
+        var buf = ArrayPool<ZenValue>.Shared.Rent(16);
+        int n = 0;
+        try
+        {
+            SkipWs(s, ref i);
+            if (i < s.Length && s[i] == ']') { i++; return ZenValue.FromArray(System.Array.Empty<ZenValue>()); }
+            while (true)
+            {
+                if (n == buf.Length)
+                {
+                    var bigger = ArrayPool<ZenValue>.Shared.Rent(buf.Length * 2);
+                    System.Array.Copy(buf, bigger, n);
+                    ArrayPool<ZenValue>.Shared.Return(buf);
+                    buf = bigger;
+                }
+                buf[n++] = Consume(s, ref i);
+                SkipWs(s, ref i);
+                if (i >= s.Length) break;
+                if (s[i] == ',') { i++; continue; }
+                if (s[i] == ']') { i++; break; }
+                break;
+            }
+            var exact = new ZenValue[n];
+            System.Array.Copy(buf, exact, n);
+            return ZenValue.FromArray(exact);
+        }
+        finally
+        {
+            ArrayPool<ZenValue>.Shared.Return(buf);
+        }
+    }
+
+    private static ZenValue ReadObject(ReadOnlySpan<char> s, ref int i)
+    {
+        i++; // consume '{'
+        var dict = new Dictionary<string, ZenValue>(StringComparer.Ordinal);
+        SkipWs(s, ref i);
+        if (i < s.Length && s[i] == '}') { i++; return ZenValue.FromObject(dict); }
+        while (true)
+        {
+            SkipWs(s, ref i);
+            string key = s[i] == '"' ? ReadString(s, ref i) : s[i..].ToString();
+            SkipWs(s, ref i);
+            if (i < s.Length && s[i] == ':') i++;
+            dict[key] = Consume(s, ref i);
+            SkipWs(s, ref i);
+            if (i >= s.Length) break;
+            if (s[i] == ',') { i++; continue; }
+            if (s[i] == '}') { i++; break; }
+            break;
+        }
+        return ZenValue.FromObject(dict);
+    }
+
+    private static string ReadString(ReadOnlySpan<char> s, ref int i)
+    {
+        i++; // opening quote
+        int start = i;
+        while (i < s.Length && s[i] != '"')
+        {
+            if (s[i] == '\\') return ReadStringEscaped(s, ref i, start);
+            i++;
+        }
+        string result = new string(s.Slice(start, i - start));
+        i++; // closing quote
+        return result;
+    }
+
+    private static string ReadStringEscaped(ReadOnlySpan<char> s, ref int i, int start)
+    {
+        var sb = new StringBuilder();
+        sb.Append(s.Slice(start, i - start));
+        while (i < s.Length && s[i] != '"')
+        {
+            if (s[i] == '\\')
+            {
+                i++;
+                char e = s[i++];
+                switch (e)
+                {
+                    case 'n': sb.Append('\n'); break;
+                    case 't': sb.Append('\t'); break;
+                    case 'r': sb.Append('\r'); break;
+                    case 'b': sb.Append('\b'); break;
+                    case 'f': sb.Append('\f'); break;
+                    case '"': sb.Append('"'); break;
+                    case '\\': sb.Append('\\'); break;
+                    case '/': sb.Append('/'); break;
+                    case 'u':
+                        sb.Append((char)Hex4(s, i)); i += 4; break;
+                    default: sb.Append(e); break;
+                }
+            }
+            else { sb.Append(s[i]); i++; }
+        }
+        i++; // closing quote
+        return sb.ToString();
+    }
+
+    private static int Hex4(ReadOnlySpan<char> s, int i)
+    {
+        int v = 0;
+        for (int k = 0; k < 4; k++) v = v * 16 + HexVal(s[i + k]);
+        return v;
+    }
+
+    private static int HexVal(char c) => c switch
+    {
+        >= '0' and <= '9' => c - '0',
+        >= 'a' and <= 'f' => c - 'a' + 10,
+        >= 'A' and <= 'F' => c - 'A' + 10,
+        _ => 0,
+    };
+
+    private static double ReadNumber(ReadOnlySpan<char> s, ref int i)
+    {
+        int start = i;
+        if (s[i] == '-') i++;
+        while (i < s.Length)
+        {
+            char c = s[i];
+            if ((c >= '0' && c <= '9') || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-') i++;
+            else break;
+        }
+        return double.Parse(s.Slice(start, i - start), NumberStyles.Float, CultureInfo.InvariantCulture);
     }
 
     /// <summary>Convert a <see cref="JsonElement"/> (e.g. a result from a third-party

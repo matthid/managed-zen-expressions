@@ -162,7 +162,7 @@ grouped_bars(
 # ---- JSON-eval throughput (ns) ----
 grouped_bars(
     series=[
-        ("Managed (JSON)", MANAGED, [806.1, 1242.0, 9200.7, 5282.0, 777.0, 1156.0, 3712.5]),
+        ("Managed (JSON)", MANAGED, [590.5, 989.4, 7899.0, 4510.5, 593.1, 1015.4, 3384.7]),
         ("Native manual (JSON)", NATIVE, [925.5, 1279.8, 10750.2, 5359.7, 1461.7, 2290.7, 6122.5]),
         ("GoRules.Zen", GORULES, [4327.8, 6558.5, 71957.8, 71741.6, 5459.7, 27439.1, 18904.8]),
     ],
@@ -271,12 +271,12 @@ grouped_bars(
 # ---- heavy-load crossover (JSON-eval, µs) ----
 grouped_bars(
     series=[
-        ("Managed (JSON)", MANAGED, [60.525, 38.106, 116.182, 148.347, 63.788]),
+        ("Managed (JSON)", MANAGED, [55.85, 31.70, 107.33, 135.25, 58.08]),
         ("Native (JSON)", NATIVE, [26.582, 57.751, 131.198, 222.036, 134.529]),
         ("GoRules", GORULES, [185.433, 145.154, 312.494, 426.534, 299.844]),
     ],
     categories=HEAVY,
-    title="Heavy load — JSON per call: native still leads on sum-1k after ZenJson opt (84→61 µs)",
+    title="Heavy load — JSON per call: native still leads on sum-1k after ZenJson opt (84→56 µs)",
     note="log scale · lower is better · serde parses 1000-element arrays faster than managed",
     fmt=fmt_us, fname="heavy-json.svg",
 )
