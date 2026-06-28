@@ -34,6 +34,7 @@ public static class Scenarios
     public static readonly Scenario[] All = Build();
 
     public static IEnumerable<string> AllNames => All.Select(s => s.Name);
+    public static IEnumerable<string> StandardNames => All.Where(s => s.Group != "heavy").Select(s => s.Name);
     public static Scenario ByName(string name) => All.First(s => s.Name == name);
 
     private static Scenario[] Build()
@@ -123,6 +124,58 @@ public static class Scenarios
             ContextJson = "{\"prefix\":\"ORD\",\"id\":4815,\"status\":\"pending\"}",
         });
 
+        // --- heavy scenarios: probe where (if anywhere) native overtakes managed
+        // under high load. dataN = arrays of N; the contexts are generated below. ---
+        AddHeavy(list);
         return list.ToArray();
+    }
+
+    /// <summary>Heavy scenarios only (for the focused HeavyBench + crossover chart).</summary>
+    public static readonly string[] HeavyNames = HeavyScenarioNames();
+
+    private static string[] HeavyScenarioNames() => All.Where(s => s.Group == "heavy").Select(s => s.Name).ToArray();
+
+    private static void AddHeavy(List<Scenario> list)
+    {
+        // 1000-element array context, reused by several scenarios.
+        var data1k = new StringBuilder();
+        for (int i = 1; i <= 1000; i++) { if (i > 1) data1k.Append(','); data1k.Append(i); }
+        string ctx1k = "{\"data\":[" + data1k + "]}";
+
+        // 1) Heavy compute, SCALAR result -> cheap marshal; tests raw eval speed.
+        list.Add(new() { Name = "heavy-sum-1k", Group = "heavy",
+            Expression = "sum(data)", ContextJson = ctx1k });
+
+        // 2) Heavy compute via a wide arithmetic expression (200 terms), scalar result.
+        var sbA = new StringBuilder();
+        var sbC = new StringBuilder("{");
+        for (int i = 0; i < 200; i++) {
+            if (i > 0) sbA.Append('+');
+            sbA.Append("v").Append(i);
+            if (i > 0) sbC.Append(',');
+            sbC.Append("\"v").Append(i).Append("\":").Append(i + 1);
+        }
+        sbC.Append('}');
+        list.Add(new() { Name = "heavy-arith-200", Group = "heavy",
+            Expression = sbA.ToString(), ContextJson = sbC.ToString() });
+
+        // 3) Heavy compute + LARGE result array (1000 elements) -> native pays marshal-back.
+        list.Add(new() { Name = "heavy-map-1k", Group = "heavy",
+            Expression = "map(data, # * # + 1)", ContextJson = ctx1k });
+
+        // 4) Heavy compute + ~500-element filtered result.
+        list.Add(new() { Name = "heavy-filter-1k", Group = "heavy",
+            Expression = "filter(data, # > 500)", ContextJson = ctx1k });
+
+        // 5) Heavy ALLOCATION: map producing 100 objects (3 keys each).
+        var rows = new StringBuilder("[");
+        for (int i = 0; i < 100; i++) {
+            if (i > 0) rows.Append(',');
+            rows.Append("{\"x\":").Append(i + 1).Append(",\"y\":").Append(100 - i).Append('}');
+        }
+        rows.Append(']');
+        list.Add(new() { Name = "heavy-map-objects-100", Group = "heavy",
+            Expression = "map(rows, { a: #.x * 2, b: #.y + 1, c: #.x + #.y })",
+            ContextJson = "{\"rows\":" + rows + "}" });
     }
 }

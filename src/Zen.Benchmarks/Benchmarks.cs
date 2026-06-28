@@ -18,7 +18,7 @@ public class EvalBench
     [ParamsSource(nameof(Names))]
     public string ScenarioName { get; set; } = "";
 
-    public static IEnumerable<string> Names => Scenarios.AllNames;
+    public static IEnumerable<string> Names => Scenarios.StandardNames;
 
     private Scenario s = null!;
 
@@ -63,7 +63,7 @@ public class ParseBench
     [ParamsSource(nameof(Names))]
     public string ScenarioName { get; set; } = "";
 
-    public static IEnumerable<string> Names => Scenarios.AllNames;
+    public static IEnumerable<string> Names => Scenarios.StandardNames;
 
     private Scenario s = null!;
 
@@ -105,7 +105,7 @@ public class LimitsBench
     [ParamsSource(nameof(Names))]
     public string ScenarioName { get; set; } = "";
 
-    public static IEnumerable<string> Names => Scenarios.AllNames;
+    public static IEnumerable<string> Names => Scenarios.StandardNames;
 
     private Scenario s = null!;
 
@@ -125,4 +125,51 @@ public class LimitsBench
 
     [Benchmark]
     public ZenValue On_Strict() => s.ManagedExpr!.Evaluate(s.ManagedCtx, ZenLimits.Strict);
+}
+
+/// <summary>
+/// Heavy-load scenarios: probe where (if anywhere) the native engine overtakes
+/// managed as per-call work grows. Same six paths as <see cref="EvalBench"/>, but
+/// only the <c>heavy</c> scenarios (large arrays, wide arithmetic, big result sets).
+/// </summary>
+[MemoryDiagnoser]
+public class HeavyBench
+{
+    [ParamsSource(nameof(Names))]
+    public string ScenarioName { get; set; } = "";
+
+    public static IEnumerable<string> Names => Scenarios.HeavyNames;
+
+    private Scenario s = null!;
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        s = Scenarios.ByName(ScenarioName);
+        s.ManagedExpr = ZenExpression.Compile(s.Expression);
+        s.ManagedCtx = ZenJson.Parse(s.ContextJson);
+        s.NativeExpr = NativeZenExpression.Compile(s.Expression);
+        s.NativeCtx = NativeContext.Parse(s.ContextJson);
+        s.GorulesExpr = GorulesZenExpression.Compile(s.Expression);
+        s.GorulesDoc = System.Text.Json.JsonDocument.Parse(s.ContextJson);
+        s.GorulesCtx = s.GorulesDoc.RootElement.Clone();
+    }
+
+    [Benchmark(Baseline = true)]
+    public ZenValue Managed_Pure() => s.ManagedExpr!.Evaluate(s.ManagedCtx);
+
+    [Benchmark]
+    public ZenValue Native_Pure() => s.NativeExpr!.Evaluate(s.NativeCtx!);
+
+    [Benchmark]
+    public ZenValue Gorules_Pure() => s.GorulesExpr!.Evaluate(s.GorulesCtx);
+
+    [Benchmark]
+    public ZenValue Managed_Json() => s.ManagedExpr!.Evaluate(s.ContextJson);
+
+    [Benchmark]
+    public ZenValue Native_Json() => s.NativeExpr!.Evaluate(s.ContextJson);
+
+    [Benchmark]
+    public ZenValue Gorules_Json() => s.GorulesExpr!.Evaluate(s.ContextJson);
 }

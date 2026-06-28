@@ -233,6 +233,43 @@ compute dominates, or (b) **batch** many evaluations per interop call so the
 marshalling is amortized. Single-expression evaluation calls of realistic size do
 not clear that bar — which is the whole point of this comparison.
 
+## Heavy load: where native *does* beat managed
+
+The chart trend is real — native catches up as work grows. A dedicated `HeavyBench`
+pushes it: large arrays (1 000 elements), a 200-term arithmetic expression, and
+map/filter over big result sets. (GoRules stays slow throughout — the crossover is
+between **managed and manual-native**.)
+
+![Heavy load — pure-eval (pre-parsed context)](docs/charts/heavy-pure.svg)
+
+![Heavy load — JSON context per call](docs/charts/heavy-json.svg)
+
+| Scenario (managed vs native) | Managed pure | Native pure | Managed JSON | Native JSON |
+| --- | ---: | ---: | ---: | ---: |
+| heavy-sum-1k (sum of 1 000, scalar result) | 3.7 µs | **3.3 µs** ✅ | 83.8 µs | **29.2 µs** ✅ |
+| heavy-arith-200 (200-term arithmetic, scalar) | **9.3 µs** | 10.6 µs | **42.9 µs** | 57.7 µs |
+| heavy-filter-1k (~500-element result) | **64.7 µs** | 129.2 µs | **136.0 µs** | 150.6 µs |
+| heavy-map-1k (1 000-element result) | **85.3 µs** | 222.6 µs | **150.6 µs** | 254.7 µs |
+| heavy-map-objects-100 (100 objects result) | **34.2 µs** | 108.2 µs | **79.6 µs** | 152.6 µs |
+
+The finding is the **opposite** of an allocation-driven crossover:
+
+- **Native wins only on `heavy-sum-1k`** — heavy *compute* with a **scalar**
+  result. The cheap marshal (one number back) lets native's raw eval speed show
+  (pure: ~11% faster), and on the JSON path native is **2.9× faster**.
+- **Managed wins every allocation-heavy scenario** (large result arrays/objects):
+  native must marshal the whole result back across the boundary, which dominates.
+  So *more allocations make managed's lead bigger, not smaller*.
+- **Why native wins the JSON path on `sum-1k`:** serde parses the 1 000-element
+  context array far faster than the managed hand-rolled `ZenJson` reader
+  (≈29 µs vs ≈84 µs) and the result is a single number. That's a real
+  managed-side optimization opportunity (a faster JSON reader, or reusing
+  `System.Text.Json`'s pooled `JsonElement`, would close most of the gap).
+
+So: **native overtakes managed on compute-bound work with small results** (e.g.
+`sum`/`reduce` over large inputs), and **managed dominates allocation-bound work**
+and any path where the result must be marshalled. ([`results/heavy-bench.txt`](results/heavy-bench.txt))
+
 ---
 
 # Part 2 — Variants & features

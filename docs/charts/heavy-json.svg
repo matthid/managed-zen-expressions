@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="430" viewBox="0 0 980 430" font-family="Segoe UI,Helvetica,Arial,sans-serif">
+<rect width="980" height="430" fill="#ffffff"/>
+<text x="490" y="26" text-anchor="middle" font-size="17" font-weight="600" fill="#222222">Heavy load — JSON context per call: native 2.9x faster on sum-1k (serde > hand-rolled JSON)</text>
+<line x1="64" y1="440.6" x2="964" y2="440.6" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="444.6" text-anchor="end" font-size="11" fill="#666666">10.0 µs</text>
+<line x1="64" y1="211.6" x2="964" y2="211.6" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="215.6" text-anchor="end" font-size="11" fill="#666666">100.0 µs</text>
+<line x1="64" y1="-17.3" x2="964" y2="-17.3" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="-13.3" text-anchor="end" font-size="11" fill="#666666">1.0 ms</text>
+<rect x="83.8" y="229.2" width="40.2" height="104.8" fill="#2ca02c" rx="1.5"/>
+<text x="103.9" y="225.2" text-anchor="middle" font-size="9" fill="#222222">83.8 µs</text>
+<rect x="130.6" y="334.0" width="40.2" height="0.0" fill="#1f77b4" rx="1.5"/>
+<text x="150.7" y="330.0" text-anchor="middle" font-size="9" fill="#222222">29.2 µs</text>
+<rect x="177.4" y="148.1" width="40.2" height="185.9" fill="#d62728" rx="1.5"/>
+<text x="197.5" y="144.1" text-anchor="middle" font-size="9" fill="#222222">189.4 µs</text>
+<text x="154.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">sum-1k</text>
+<rect x="263.8" y="295.7" width="40.2" height="38.3" fill="#2ca02c" rx="1.5"/>
+<text x="283.9" y="291.7" text-anchor="middle" font-size="9" fill="#222222">42.9 µs</text>
+<rect x="310.6" y="266.3" width="40.2" height="67.7" fill="#1f77b4" rx="1.5"/>
+<text x="330.7" y="262.3" text-anchor="middle" font-size="9" fill="#222222">57.7 µs</text>
+<rect x="357.4" y="181.7" width="40.2" height="152.3" fill="#d62728" rx="1.5"/>
+<text x="377.5" y="177.7" text-anchor="middle" font-size="9" fill="#222222">135.1 µs</text>
+<text x="334.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">arith-200</text>
+<rect x="443.8" y="181.0" width="40.2" height="153.0" fill="#2ca02c" rx="1.5"/>
+<text x="463.9" y="177.0" text-anchor="middle" font-size="9" fill="#222222">136.0 µs</text>
+<rect x="490.6" y="170.9" width="40.2" height="163.1" fill="#1f77b4" rx="1.5"/>
+<text x="510.7" y="166.9" text-anchor="middle" font-size="9" fill="#222222">150.6 µs</text>
+<rect x="537.4" y="91.8" width="40.2" height="242.2" fill="#d62728" rx="1.5"/>
+<text x="557.5" y="87.8" text-anchor="middle" font-size="9" fill="#222222">333.8 µs</text>
+<text x="514.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">filter-1k</text>
+<rect x="623.8" y="170.9" width="40.2" height="163.1" fill="#2ca02c" rx="1.5"/>
+<text x="643.9" y="166.9" text-anchor="middle" font-size="9" fill="#222222">150.6 µs</text>
+<rect x="670.6" y="118.7" width="40.2" height="215.3" fill="#1f77b4" rx="1.5"/>
+<text x="690.7" y="114.7" text-anchor="middle" font-size="9" fill="#222222">254.7 µs</text>
+<rect x="717.4" y="56.0" width="40.2" height="278.0" fill="#d62728" rx="1.5"/>
+<text x="737.5" y="52.0" text-anchor="middle" font-size="9" fill="#222222">478.3 µs</text>
+<text x="694.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">map-1k</text>
+<rect x="803.8" y="234.3" width="40.2" height="99.7" fill="#2ca02c" rx="1.5"/>
+<text x="823.9" y="230.3" text-anchor="middle" font-size="9" fill="#222222">79.6 µs</text>
+<rect x="850.6" y="169.6" width="40.2" height="164.4" fill="#1f77b4" rx="1.5"/>
+<text x="870.7" y="165.6" text-anchor="middle" font-size="9" fill="#222222">152.6 µs</text>
+<rect x="897.4" y="98.9" width="40.2" height="235.1" fill="#d62728" rx="1.5"/>
+<text x="917.5" y="94.9" text-anchor="middle" font-size="9" fill="#222222">310.7 µs</text>
+<text x="874.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">map-obj-100</text>
+<line x1="64" y1="334" x2="964" y2="334" stroke="#222222" stroke-width="1.2"/>
+<rect x="64" y="393" width="14" height="14" fill="#2ca02c" rx="2"/>
+<text x="84" y="404" font-size="12" fill="#222222">Managed (JSON)</text>
+<rect x="212" y="393" width="14" height="14" fill="#1f77b4" rx="2"/>
+<text x="232" y="404" font-size="12" fill="#222222">Native (JSON)</text>
+<rect x="353" y="393" width="14" height="14" fill="#d62728" rx="2"/>
+<text x="373" y="404" font-size="12" fill="#222222">GoRules</text>
+<text x="968" y="422" text-anchor="end" font-size="11" font-style="italic" fill="#666666">log scale · lower is better · large-array serde parse beats the managed JSON reader</text>
+</svg>

@@ -53,6 +53,12 @@ def fmt_ms(v):
     return f"{v:.1f} ms"
 
 
+def fmt_us(v):
+    if v >= 1000:
+        return f"{v/1000:.1f} ms"
+    return f"{v:.1f} µs"
+
+
 def grouped_bars(series, categories, title, note, fmt, fname,
                  log=True, width=980, height=430, floor=None):
     margin_l, margin_r, margin_t, margin_b = 64, 16, 56, 96
@@ -246,6 +252,33 @@ grouped_bars(
     title="Cold first call (fresh process: lib load + JIT + first eval)",
     note="log scale · GoRules ~55 ms (dlopen 12 MB + UniFFI + thread-pool)",
     fmt=fmt_ms, fname="cold-start.svg", width=620, height=320,
+)
+
+# ---- heavy-load crossover (pure-eval, µs) ----
+HEAVY = ["sum-1k", "arith-200", "filter-1k", "map-1k", "map-obj-100"]
+grouped_bars(
+    series=[
+        ("Managed (pure)", MANAGED, [3.711, 9.304, 64.696, 85.299, 34.163]),
+        ("Native (pure)", NATIVE, [3.303, 10.608, 129.238, 222.610, 108.190]),
+        ("GoRules", GORULES, [163.696, 147.498, 296.014, 416.519, 276.224]),
+    ],
+    categories=HEAVY,
+    title="Heavy load — pure-eval (pre-parsed context): native wins only on sum-1k",
+    note="log scale · lower is better · native edges ahead on scalar-result compute (sum-1k)",
+    fmt=fmt_us, fname="heavy-pure.svg",
+)
+
+# ---- heavy-load crossover (JSON-eval, µs) ----
+grouped_bars(
+    series=[
+        ("Managed (JSON)", MANAGED, [83.791, 42.947, 136.012, 150.624, 79.576]),
+        ("Native (JSON)", NATIVE, [29.212, 57.683, 150.589, 254.694, 152.648]),
+        ("GoRules", GORULES, [189.404, 135.064, 333.826, 478.283, 310.717]),
+    ],
+    categories=HEAVY,
+    title="Heavy load — JSON context per call: native 2.9x faster on sum-1k (serde > hand-rolled JSON)",
+    note="log scale · lower is better · large-array serde parse beats the managed JSON reader",
+    fmt=fmt_us, fname="heavy-json.svg",
 )
 
 print("done")

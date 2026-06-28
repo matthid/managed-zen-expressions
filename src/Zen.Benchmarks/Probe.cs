@@ -24,6 +24,11 @@ public static class Probe
             ("prefix + '-' + string(id) + '-' + upper(status)", "{\"prefix\":\"ORD\",\"id\":4815,\"status\":\"pending\"}"),
             ("prefix + ' ' + upper(status)", "{\"prefix\":\"ORD\",\"status\":\"pending\"}"),
             ("upper(prefix) + '-' + lower(status)", "{\"prefix\":\"ORD\",\"status\":\"PENDING\"}"),
+            // heavy scenario shapes (smaller contexts) — verify 3-engine agreement:
+            ("sum(data)", "{\"data\":[1,2,3,4,5]}"),
+            ("map(data, # * # + 1)", "{\"data\":[1,2,3,4,5]}"),
+            ("filter(data, # > 2)", "{\"data\":[1,2,3,4,5]}"),
+            ("map(rows, { a: #.x * 2, b: #.y + 1, c: #.x + #.y })", "{\"rows\":[{\"x\":1,\"y\":2},{\"x\":3,\"y\":4}]}"),
         };
 
         foreach (var (expr, ctx) in cases)
