@@ -138,7 +138,7 @@ impl Parser {
         let tok = self.advance();
         match tok.kind {
             Tok::Number(n) => Ok(Node::Literal(Value::Num(n))),
-            Tok::Str(s) => Ok(Node::Literal(Value::Str(s))),
+            Tok::Str(s) => Ok(Node::Literal(Value::str(s))),
             Tok::TrueKw => Ok(Node::Literal(Value::Bool(true))),
             Tok::FalseKw => Ok(Node::Literal(Value::Bool(false))),
             Tok::NullKw => Ok(Node::Literal(Value::Null)),

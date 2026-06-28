@@ -48,7 +48,7 @@ impl Evaluator {
             Node::Array(items) => {
                 let mut out = Vec::with_capacity(items.len());
                 for it in items.iter() { out.push(self.eval(it)?); }
-                Ok(Value::Arr(out))
+                Ok(Value::arr(out))
             }
 
             Node::Object { keys, values } => {
@@ -56,7 +56,7 @@ impl Evaluator {
                 for (k, v) in keys.iter().zip(values.iter()) {
                     map.insert(k.clone(), self.eval(v)?);
                 }
-                Ok(Value::Obj(map))
+                Ok(Value::obj(map))
             }
 
             Node::Unary { plus, operand } => {
@@ -140,7 +140,7 @@ impl Evaluator {
                 arr[idx as usize].clone()
             }
             Value::Obj(map) => {
-                let s = match &key { Value::Str(s) => s.clone(), other => crate::value::stringify(other) };
+                let s = match &key { Value::Str(s) => s.as_str().to_owned(), other => crate::value::stringify(other) };
                 map.get(&s).cloned().unwrap_or(Value::Null)
             }
             _ => Value::Null,
@@ -152,7 +152,7 @@ impl Evaluator {
         let rv = self.eval(r)?;
 
         if matches!(op, BinOp::Add) && (matches!(lv, Value::Str(_)) || matches!(rv, Value::Str(_))) {
-            return Ok(Value::Str(format!("{}{}", crate::value::stringify(&lv), crate::value::stringify(&rv))));
+            return Ok(Value::str(format!("{}{}", crate::value::stringify(&lv), crate::value::stringify(&rv))));
         }
 
         let a = lv.canon_number()?;
@@ -208,7 +208,7 @@ impl Evaluator {
                 let coll = self.eval(range)?;
                 match coll {
                     Value::Arr(arr) => Ok(arr.iter().any(|e| deep_equal(e, &value))),
-                    Value::Obj(map) => Ok(match &value { Value::Str(s) => map.contains_key(s), _ => false }),
+                    Value::Obj(map) => Ok(match &value { Value::Str(s) => map.contains_key(s.as_str()), _ => false }),
                     Value::Str(hay) => {
                         if let Value::Str(needle) = &value { Ok(hay.contains(needle.as_str())) } else { Ok(false) }
                     }

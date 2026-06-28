@@ -90,12 +90,12 @@ fn json_to_value(v: &serde_json::Value) -> Value {
         serde_json::Value::Null => Value::Null,
         serde_json::Value::Bool(b) => Value::Bool(*b),
         serde_json::Value::Number(n) => Value::Num(n.as_f64().unwrap_or(0.0)),
-        serde_json::Value::String(s) => Value::Str(s.clone()),
-        serde_json::Value::Array(a) => Value::Arr(a.iter().map(json_to_value).collect()),
+        serde_json::Value::String(s) => Value::str(s.clone()),
+        serde_json::Value::Array(a) => Value::arr(a.iter().map(json_to_value).collect()),
         serde_json::Value::Object(o) => {
             let mut m = BTreeMap::new();
             for (k, val) in o.iter() { m.insert(k.clone(), json_to_value(val)); }
-            Value::Obj(m)
+            Value::obj(m)
         }
     }
 }

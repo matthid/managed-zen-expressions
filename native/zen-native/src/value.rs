@@ -1,18 +1,28 @@
 use std::collections::BTreeMap;
+use std::rc::Rc;
 
 /// A first-class Zen value. Mirrors `ZenValue` in the managed implementation
 /// byte-for-byte: all numbers are f64, objects are key/value maps.
+///
+/// Containers (strings, arrays, objects) are reference-counted so that cloning
+/// a `Value` is cheap. This matters for member access: `a.b.c` must not deep-
+/// copy intermediate objects. (In the managed world, `ZenValue` is a struct that
+/// already holds object/array fields *by reference*, so cloning is free there.)
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Null,
     Bool(bool),
     Num(f64),
-    Str(String),
-    Arr(Vec<Value>),
-    Obj(BTreeMap<String, Value>),
+    Str(Rc<String>),
+    Arr(Rc<Vec<Value>>),
+    Obj(Rc<BTreeMap<String, Value>>),
 }
 
 impl Value {
+    pub fn str<S: Into<String>>(s: S) -> Self { Value::Str(Rc::new(s.into())) }
+    pub fn arr(v: Vec<Value>) -> Self { Value::Arr(Rc::new(v)) }
+    pub fn obj(m: BTreeMap<String, Value>) -> Self { Value::Obj(Rc::new(m)) }
+
     pub fn is_null(&self) -> bool { matches!(self, Value::Null) }
     pub fn is_truthy(&self) -> bool {
         match self {
@@ -67,7 +77,7 @@ pub fn stringify(v: &Value) -> String {
         Value::Null => "null".to_string(),
         Value::Bool(true) => "true".to_string(),
         Value::Bool(false) => "false".to_string(),
-        Value::Str(s) => s.clone(),
+        Value::Str(s) => s.as_str().to_owned(),
         Value::Num(n) => number_to_string(*n),
         other => format!("{:?}", other),
     }

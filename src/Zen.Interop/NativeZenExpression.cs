@@ -68,4 +68,7 @@ public static class NativeMemory
     public static ulong AllocCount => NativeBindings.MemAllocCount;
     public static ulong DeallocCount => NativeBindings.MemDeallocCount;
     public static void ResetCounters() => NativeBindings.MemReset();
+
+    /// <summary>Trivial native call used to isolate raw P/Invoke overhead in benchmarks.</summary>
+    public static double ProbeAdd(double a, double b) => NativeBindings.Add(a, b);
 }

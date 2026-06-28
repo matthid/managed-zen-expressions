@@ -58,16 +58,16 @@ pub fn call(name: &str, ev: &mut Evaluator, args: &[Node]) -> Result<Value, Stri
             let v = ev.eval_arg(args, 0)?;
             Ok(Value::Num(num(&v)))
         }
-        "string" => Ok(Value::Str(stringify(&ev.eval_arg(args, 0)?))),
+        "string" => Ok(Value::str(stringify(&ev.eval_arg(args, 0)?))),
         "boolean" => Ok(Value::Bool(ev.eval_arg(args, 0)?.is_truthy())),
 
-        "upper" => Ok(Value::Str(str_arg(ev, args, 0).to_uppercase())),
-        "lower" => Ok(Value::Str(str_arg(ev, args, 0).to_lowercase())),
-        "trim" => Ok(Value::Str(str_arg(ev, args, 0).trim().to_string())),
+        "upper" => Ok(Value::str(str_arg(ev, args, 0).to_uppercase())),
+        "lower" => Ok(Value::str(str_arg(ev, args, 0).to_lowercase())),
+        "trim" => Ok(Value::str(str_arg(ev, args, 0).trim().to_string())),
         "concat" => {
             let mut s = String::new();
             for i in 0..args.len() { s.push_str(&stringify(&ev.eval_arg(args, i)?)); }
-            Ok(Value::Str(s))
+            Ok(Value::str(s))
         }
         "contains" => Ok(Value::Bool(str_arg(ev, args, 0).contains(&str_arg(ev, args, 1)))),
         "startsWith" => Ok(Value::Bool(str_arg(ev, args, 0).starts_with(&str_arg(ev, args, 1)))),
@@ -88,28 +88,28 @@ pub fn call(name: &str, ev: &mut Evaluator, args: &[Node]) -> Result<Value, Stri
                 let chars: Vec<char> = s.chars().collect();
                 let end = (end as usize).min(chars.len());
                 let out: String = chars[start.min(end)..end].iter().collect();
-                Ok(Value::Str(out))
+                Ok(Value::str(out))
             } else {
                 let chars: Vec<char> = s.chars().collect();
-                if start >= chars.len() { Ok(Value::Str(String::new())) }
-                else { Ok(Value::Str(chars[start..].iter().collect())) }
+                if start >= chars.len() { Ok(Value::str(String::new())) }
+                else { Ok(Value::str(chars[start..].iter().collect::<String>())) }
             }
         }
         "replace" => {
             let s = str_arg(ev, args, 0);
             let from = str_arg(ev, args, 1);
             let to = str_arg(ev, args, 2);
-            Ok(Value::Str(s.replace(&from, &to)))
+            Ok(Value::str(s.replace(&from, &to)))
         }
         "split" => {
             let s = str_arg(ev, args, 0);
             let sep = str_arg(ev, args, 1);
             let parts: Vec<Value> = if sep.is_empty() {
-                vec![Value::Str(s)]
+                vec![Value::str(s)]
             } else {
-                s.split(sep.as_str()).map(|p| Value::Str(p.to_string())).collect()
+                s.split(sep.as_str()).map(|p| Value::str(p.to_string())).collect()
             };
-            Ok(Value::Arr(parts))
+            Ok(Value::arr(parts))
         }
 
         "map" => higher_order(ev, args, "map"),
@@ -157,12 +157,12 @@ fn higher_order(ev: &mut Evaluator, args: &[Node], mode: &str) -> Result<Value, 
         "map" => {
             let mut out = Vec::with_capacity(arr.len());
             for e in arr.iter() { out.push(ev.eval_with_element(body, e.clone())?); }
-            Ok(Value::Arr(out))
+            Ok(Value::arr(out))
         }
         "filter" => {
             let mut out = Vec::new();
             for e in arr.iter() { if ev.eval_with_element(body, e.clone())?.is_truthy() { out.push(e.clone()); } }
-            Ok(Value::Arr(out))
+            Ok(Value::arr(out))
         }
         "some" => {
             for e in arr.iter() { if ev.eval_with_element(body, e.clone())?.is_truthy() { return Ok(Value::Bool(true)); } }
