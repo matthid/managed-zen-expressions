@@ -1,0 +1,19 @@
+# Build outputs
+bin/
+obj/
+target/
+artifacts/
+
+# BenchmarkDotNet
+**/BenchmarkDotNet.Artifacts/
+
+# IDE / OS
+.vs/
+.idea/
+*.user
+*.suo
+.DS_Store
+
+# Local results
+results/
+*.log

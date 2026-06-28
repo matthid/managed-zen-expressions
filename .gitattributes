@@ -1,0 +1,9 @@
+# Force LF line endings everywhere — this repo is built in Linux containers
+# (Rust + .NET). CRLF would break Dockerfile `\` continuations and shell.
+* text=auto eol=lf
+
+# Binary artifacts (none expected yet, but explicit).
+*.png binary
+*.jpg binary
+*.so binary
+*.dll binary
