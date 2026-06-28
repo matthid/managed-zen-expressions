@@ -258,20 +258,20 @@ grouped_bars(
 HEAVY = ["sum-1k", "sum-map-1k", "arith-200", "filter-1k", "map-1k", "map-obj-100"]
 grouped_bars(
     series=[
-        ("Managed (pure)", MANAGED, [3.882, 101.689, 11.173, 61.738, 89.111, 36.948]),
+        ("Managed (pure)", MANAGED, [3.938, 80.220, 11.173, 61.738, 89.111, 36.948]),
         ("Native (pure)", NATIVE, [3.211, 78.013, 10.473, 110.600, 234.443, 97.643]),
         ("GoRules", GORULES, [185.075, 242.536, 147.910, 304.496, 502.190, 324.231]),
     ],
     categories=HEAVY,
-    title="Heavy load — pure-eval: native wins on scalar-result work (sum-1k, sum-map-1k)",
-    note="log scale · lower is better · sum-map-1k: intermediate array stays native, scalar returns -> native wins",
+    title="Heavy load — pure-eval: native edges ahead on scalar compute; sum(map) mitigated by fusion to ~tied",
+    note="log scale · lower is better · fusion drops sum(map) intermediate alloc -> managed ties native (80 vs 78 us)",
     fmt=fmt_us, fname="heavy-pure.svg",
 )
 
 # ---- heavy-load crossover (JSON-eval, µs) ----
 grouped_bars(
     series=[
-        ("Managed (JSON)", MANAGED, [60.881, 146.094, 34.198, 121.344, 157.453, 64.695]),
+        ("Managed (JSON)", MANAGED, [60.881, 128.630, 34.198, 121.344, 157.453, 64.695]),
         ("Native (JSON)", NATIVE, [29.010, 100.049, 63.697, 133.614, 236.741, 140.158]),
         ("GoRules", GORULES, [203.108, 284.924, 155.876, 370.481, 487.269, 359.502]),
     ],

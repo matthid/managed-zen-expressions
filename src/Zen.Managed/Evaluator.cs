@@ -71,7 +71,7 @@ internal sealed class Evaluator
         _elementStack[_elementTop] = v;
     }
 
-    private ZenValue Eval(Node n)
+    internal ZenValue Eval(Node n)
     {
         // No per-node step counting: static (non-iterative) work is bounded by the
         // source-length parse guard; iteration-driven work is charged at the

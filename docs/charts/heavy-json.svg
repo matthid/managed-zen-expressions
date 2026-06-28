@@ -14,8 +14,8 @@
 <rect x="158.5" y="142.2" width="33.5" height="191.8" fill="#d62728" rx="1.5"/>
 <text x="175.3" y="138.2" text-anchor="middle" font-size="9" fill="#222222">203.1 µs</text>
 <text x="139.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">sum-1k</text>
-<rect x="230.5" y="174.7" width="33.5" height="159.3" fill="#2ca02c" rx="1.5"/>
-<text x="247.3" y="170.7" text-anchor="middle" font-size="9" fill="#222222">146.1 µs</text>
+<rect x="230.5" y="187.2" width="33.5" height="146.8" fill="#2ca02c" rx="1.5"/>
+<text x="247.3" y="183.2" text-anchor="middle" font-size="9" fill="#222222">128.6 µs</text>
 <rect x="269.5" y="212.0" width="33.5" height="122.0" fill="#1f77b4" rx="1.5"/>
 <text x="286.3" y="208.0" text-anchor="middle" font-size="9" fill="#222222">100.0 µs</text>
 <rect x="308.5" y="108.9" width="33.5" height="225.1" fill="#d62728" rx="1.5"/>

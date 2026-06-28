@@ -247,7 +247,7 @@ between **managed and manual-native**.)
 | Scenario (managed vs native) | Managed pure | Native pure | Managed JSON | Native JSON |
 | --- | ---: | ---: | ---: | ---: |
 | heavy-sum-1k (sum of 1 000, scalar result) | 3.9 µs | **3.2 µs** ✅ | 60.9 µs | **29.0 µs** ✅ |
-| heavy-sum-map-1k (intermediate 1 000-array, scalar result) | 101.7 µs | **78.0 µs** ✅ | 146.1 µs | **100.0 µs** ✅ |
+| heavy-sum-map-1k (intermediate 1 000-array, scalar result) | 80.2 µs | **78.0 µs** ≈ | 128.6 µs | **100.0 µs** ✅ |
 | heavy-arith-200 (200-term arithmetic, scalar) | **11.2 µs** | 10.5 µs | **34.2 µs** | 63.7 µs |
 | heavy-filter-1k (~500-element result) | **61.7 µs** | 110.6 µs | **121.3 µs** | 133.6 µs |
 | heavy-map-1k (1 000-element result) | **89.1 µs** | 234.4 µs | **157.5 µs** | 236.7 µs |
@@ -255,14 +255,19 @@ between **managed and manual-native**.)
 
 The deciding factor is **where the allocation lives and what crosses back**:
 
-- **Native wins when the result is a scalar** (`heavy-sum-1k`, `heavy-sum-map-1k`):
-  only a number is marshalled back, so native's raw eval speed + serde show. The
-  standout is `heavy-sum-map-1k` — `sum(map(...))` builds a 1 000-element
-  *intermediate* array that is consumed and never returned. On native that array
-  lives on the **native heap (no GC)** and only the scalar crosses back — BDN
-  shows native's *managed* allocation at just **40 B**, vs **53 136 B** for
-  `heavy-map-1k` where the array *is* the result and must be parsed back. Native is
-  **~23% faster** here (pure). This is native's best case.
+- **`heavy-sum-map-1k` is native's best case — and it's mitigable.** `sum(map(...))`
+  builds a 1 000-element *intermediate* array consumed by `sum` and never returned.
+  Naively, managed materializes it on the GC heap and native wins by ~23%. But this
+  is exactly the case for **stream fusion**: the managed `sum`/`avg`/`min`/`max`
+  detect a `map`/`filter` source and iterate it lazily (a `ref struct ElementIter`),
+  evaluating the body per element straight into the accumulator — **no intermediate
+  array at all**. That drops managed from 101.7 → **80.2 µs**, now **≈ tied with
+  native** (78 µs) on pure. (On JSON native still leads via `serde`, 100 vs 129 µs.)
+  For contrast, BDN shows native's *managed* allocation at **40 B** here vs
+  **53 136 B** for `heavy-map-1k` where the array *is* the result.
+- **Native wins the pure scalar-compute case** (`heavy-sum-1k`): `sum(data)` has no
+  intermediate to fuse, so native's tight eval loop + serde win (pure ~20% faster;
+  JSON ~2× via `serde`).
 - **Managed wins when the allocation is the result** (`heavy-map-1k`,
   `heavy-filter-1k`, `heavy-map-objects-100`): native must marshal the whole
   structure back across the boundary, which dominates. *More result allocations

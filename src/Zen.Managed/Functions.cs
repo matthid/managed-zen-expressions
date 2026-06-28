@@ -34,29 +34,39 @@ internal static class Functions
             };
         };
 
+        // sum/avg/min/max FUSE map/filter sources (sum(map(a,f)) iterates `a` and evals
+        // `f` per element straight into the accumulator — no intermediate array). The
+        // fused path uses ElementIter; a plain array argument uses a direct foreach
+        // (no per-element field write), so the common sum(array) case stays fast.
         t["sum"] = (ev, a) =>
         {
-            var v = ev.GetArg(a, 0);
+            if (IsFusable(a[0])) { var it = new ElementIter(ev, a[0]); ev.ChargeSteps(it.Length); double s = 0; while (it.MoveNext()) s += N(it.Current); return ZenValue.FromNumber(s); }
+            var v = ev.Eval(a[0]);
             if (v.Kind != ZenKind.Array) throw new ZenException("sum() expects an array");
             ev.ChargeSteps(v.Array!.Length);
-            double s = 0;
-            foreach (var e in v.Array) s += N(e);
-            return ZenValue.FromNumber(s);
+            double sum = 0; foreach (var e in v.Array) sum += N(e);
+            return ZenValue.FromNumber(sum);
         };
 
         t["avg"] = (ev, a) =>
         {
-            var v = ev.GetArg(a, 0);
+            if (IsFusable(a[0]))
+            {
+                var it = new ElementIter(ev, a[0]); double s = 0; long n = 0;
+                while (it.MoveNext()) { s += N(it.Current); n++; }
+                ev.ChargeSteps(it.Length);
+                return n == 0 ? ZenValue.FromNumber(0) : ZenValue.FromNumber(s / n);
+            }
+            var v = ev.Eval(a[0]);
             if (v.Kind != ZenKind.Array) throw new ZenException("avg() expects an array");
+            ev.ChargeSteps(v.Array!.Length);
             if (v.Array!.Length == 0) return ZenValue.FromNumber(0);
-            ev.ChargeSteps(v.Array.Length);
-            double s = 0;
-            foreach (var e in v.Array) s += N(e);
-            return ZenValue.FromNumber(s / v.Array.Length);
+            double sum = 0; foreach (var e in v.Array) sum += N(e);
+            return ZenValue.FromNumber(sum / v.Array.Length);
         };
 
-        t["min"] = (ev, a) => { var v = ev.GetArg(a, 0); if (v.Kind == ZenKind.Array && v.Array!.Length > 0) ev.ChargeSteps(v.Array.Length); return AggregateMinMax(v, max: false); };
-        t["max"] = (ev, a) => { var v = ev.GetArg(a, 0); if (v.Kind == ZenKind.Array && v.Array!.Length > 0) ev.ChargeSteps(v.Array.Length); return AggregateMinMax(v, max: true); };
+        t["min"] = (ev, a) => MinMax(ev, a[0], max: false);
+        t["max"] = (ev, a) => MinMax(ev, a[0], max: true);
 
         t["count"] = (ev, a) =>
         {
@@ -149,18 +159,95 @@ internal static class Functions
         return t;
     }
 
-    private static ZenValue AggregateMinMax(ZenValue v, bool max)
+    private static bool IsFusable(Node arg)
+        => arg.Kind == NodeKind.Call && (arg.Name == "map" || arg.Name == "filter");
+
+    private static ZenValue MinMax(Evaluator ev, Node arg, bool max)
     {
+        if (IsFusable(arg))
+        {
+            var it = new ElementIter(ev, arg);
+            ev.ChargeSteps(it.Length);
+            if (!it.MoveNext()) return ZenValue.Null;
+            double best = N(it.Current);
+            while (it.MoveNext()) { double c = N(it.Current); if (max ? c > best : c < best) best = c; }
+            return ZenValue.FromNumber(best);
+        }
+        var v = ev.Eval(arg);
         if (v.Kind != ZenKind.Array) throw new ZenException("min()/max() expects an array");
         if (v.Array!.Length == 0) return ZenValue.Null;
-        double best = N(v.Array[0]);
+        ev.ChargeSteps(v.Array.Length);
+        double best2 = N(v.Array[0]);
         for (int i = 1; i < v.Array.Length; i++)
         {
             double c = N(v.Array[i]);
-            if (max ? c > best : c < best) best = c;
+            if (max ? c > best2 : c < best2) best2 = c;
         }
-        return ZenValue.FromNumber(best);
+        return ZenValue.FromNumber(best2);
     }
+
+    /// <summary>
+    /// Stack-allocated (ref struct) iterator over an array argument. When the
+    /// argument is <c>map(arr, f)</c> or <c>filter(arr, f)</c> it iterates LAZILY —
+    /// evaluating <c>f</c> per source element and never materializing the result
+    /// array — so an aggregate like <c>sum(map(a, f))</c> allocates nothing for the
+    /// intermediate. Otherwise it iterates the materialized array as before.
+    /// </summary>
+    private ref struct ElementIter
+    {
+        private readonly ZenValue[] _src;
+        private readonly Node _body;
+        private readonly Evaluator _ev;
+        private readonly bool _fused;
+        private readonly bool _map;
+        private int _i;
+        private ZenValue _cur;
+
+        internal ElementIter(Evaluator ev, Node arg)
+        {
+            _ev = ev;
+            _src = null!;
+            _body = null!;
+            _fused = _map = false;
+            _i = -1;
+            _cur = ZenValue.Null;
+
+            if (arg.Kind == NodeKind.Call && (arg.Name == "map" || arg.Name == "filter"))
+            {
+                _fused = true;
+                _map = arg.Name == "map";
+                _body = arg.List[1];
+                var src = ev.Eval(arg.List[0]);
+                _src = src.Kind == ZenKind.Array ? src.Array! : throw new ZenException("expected an array");
+            }
+            else
+            {
+                var src = ev.Eval(arg);
+                _src = src.Kind == ZenKind.Array ? src.Array! : throw new ZenException("expected an array");
+            }
+        }
+
+        internal int Length => _src.Length;
+        internal ZenValue Current => _cur;
+
+        internal bool MoveNext()
+        {
+            if (!_fused)
+            {
+                if (++_i >= _src.Length) return false;
+                _cur = _src[_i];
+                return true;
+            }
+            while (++_i < _src.Length)
+            {
+                var e = _src[_i];
+                if (_map) { _cur = _ev.EvalWithElement(_body, e); return true; }
+                if (_ev.EvalWithElement(_body, e).IsTruthy) { _cur = e; return true; }
+            }
+            return false;
+        }
+    }
+
 
     private static ZenValue HigherOrder(Evaluator ev, Node[] a, string mode)
     {
