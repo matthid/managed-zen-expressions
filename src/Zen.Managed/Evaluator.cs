@@ -69,7 +69,7 @@ internal sealed class Evaluator
 
     private ZenValue Eval(Node n)
     {
-        ChargeStep();
+        if (_limits != null) ChargeStep();   // guarded: no call on the unlimited fast path
         switch (n.Kind)
         {
             case NodeKind.Literal: return n.Value;
@@ -80,7 +80,7 @@ internal sealed class Evaluator
             {
                 var arr = new ZenValue[n.List.Length];
                 for (int i = 0; i < arr.Length; i++) arr[i] = Eval(n.List[i]);
-                ChargeAlloc(1, arr.Length * 24L + 56);
+                if (_limits != null) ChargeAlloc(1, arr.Length * 24L + 56);
                 return ZenValue.FromArray(arr);
             }
 
@@ -88,7 +88,7 @@ internal sealed class Evaluator
             {
                 var dict = new Dictionary<string, ZenValue>(n.Keys.Length, StringComparer.Ordinal);
                 for (int i = 0; i < n.Keys.Length; i++) dict[n.Keys[i]] = Eval(n.List[i]);
-                ChargeAlloc(1, dict.Count * 48L + 96);
+                if (_limits != null) ChargeAlloc(1, dict.Count * 48L + 96);
                 return ZenValue.FromObject(dict);
             }
 
@@ -171,7 +171,7 @@ internal sealed class Evaluator
         if (n.BinOp == BinOp.Add && (l.Kind == ZenKind.String || r.Kind == ZenKind.String))
         {
             string s = Stringify(l) + Stringify(r);
-            ChargeAlloc(1, s.Length * 2L + 40);
+            if (_limits != null) ChargeAlloc(1, s.Length * 2L + 40);
             return ZenValue.FromString(s);
         }
 
