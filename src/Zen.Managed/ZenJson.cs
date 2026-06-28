@@ -23,6 +23,10 @@ public static class ZenJson
         return ToZen(doc.RootElement);
     }
 
+    /// <summary>Convert a <see cref="JsonElement"/> (e.g. a result from a third-party
+    /// engine) into a <see cref="ZenValue"/> for comparison.</summary>
+    public static ZenValue FromElement(JsonElement e) => ToZen(e);
+
     private static ZenValue ToZen(JsonElement e)
     {
         switch (e.ValueKind)

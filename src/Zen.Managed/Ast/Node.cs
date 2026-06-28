@@ -28,7 +28,7 @@ internal static class Nodes
     public static Node Array(Node[] items) => new(NodeKind.Array) { List = items };
     public static Node Object(string[] keys, Node[] values) => new(NodeKind.Object) { Keys = keys, List = values };
     public static Node Unary(bool plus, Node operand) => new(NodeKind.Unary) { A = operand, Inclusive = plus };
-    public static Node Not(Node operand) => new(NodeKind.Unary) { A = operand, Inclusive = false };
+    public static Node Not(Node operand) => new(NodeKind.Unary) { A = operand, NotFlag = true };
     public static Node Binary(BinOp op, Node l, Node r) => new(NodeKind.Binary) { BinOp = op, A = l, B = r };
     public static Node Logical(Node l, Node r, bool and) => new(NodeKind.Logical) { A = l, B = r, Inclusive = and };
     public static Node Compare(CmpOp op, Node l, Node r) => new(NodeKind.Compare) { CmpOp = op, A = l, B = r };
@@ -80,7 +80,8 @@ internal sealed class Node
 
     public BinOp BinOp;     // Binary
     public CmpOp CmpOp;     // Compare
-    public bool Inclusive;  // Unary negation flag / Range start incl / In negated
+    public bool Inclusive;  // unary +/- (true = plus) / Range start incl / In negated
+    public bool NotFlag;    // unary logical `not` (distinct from numeric negation)
 
     public bool StartIncl;  // Range
     public bool EndIncl;    // Range

@@ -46,6 +46,7 @@ internal sealed class Evaluator
             case NodeKind.Unary:
             {
                 ZenValue v = Eval(n.A!);
+                if (n.NotFlag) return ZenValue.FromBoolean(!v.IsTruthy); // logical not
                 if (n.Inclusive) return v; // unary +
                 if (v.TryGetNumber(out double d)) return ZenValue.FromNumber(-d);
                 throw new ZenException("Unary minus requires a number");

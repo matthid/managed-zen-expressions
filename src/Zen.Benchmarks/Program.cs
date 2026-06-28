@@ -12,11 +12,17 @@ internal static class Program
 {
     private static void Main(string[] args)
     {
-        // `dotnet run -c Release -- --mem` => standalone memory report.
-        // otherwise => BenchmarkDotNet throughput suite.
+        // `dotnet run -c Release -- --mem`   => standalone memory report.
+        // `dotnet run -c Release -- --probe` => quick 3-engine functional check.
+        // otherwise                          => BenchmarkDotNet throughput suite.
         if (args.Contains("--mem"))
         {
             MemoryReport.Run();
+            return;
+        }
+        if (args.Contains("--probe"))
+        {
+            Probe.Run();
             return;
         }
 

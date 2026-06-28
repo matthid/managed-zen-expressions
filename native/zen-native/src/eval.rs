@@ -59,8 +59,9 @@ impl Evaluator {
                 Ok(Value::obj(map))
             }
 
-            Node::Unary { plus, operand } => {
+            Node::Unary { plus, not, operand } => {
                 let v = self.eval(operand)?;
+                if *not { return Ok(Value::Bool(!v.is_truthy())); }
                 if *plus { return Ok(v); }
                 let d = v.canon_number()?;
                 Ok(Value::Num(-d))

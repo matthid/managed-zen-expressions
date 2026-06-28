@@ -16,7 +16,9 @@
 #   dotnet test  src/Zen.Tests/Zen.Tests.csproj -c Release
 #   dotnet run   -c Release --project src/Zen.Benchmarks
 
-ARG DOTNET_SDK=mcr.microsoft.com/dotnet/sdk:8.0
+# noble = Ubuntu 24.04 (glibc 2.39) — the official GoRules.Zen native lib
+# (libzen_ffi.so) requires GLIBC_2.39, which the default bookworm image lacks.
+ARG DOTNET_SDK=mcr.microsoft.com/dotnet/sdk:8.0-noble
 ARG RUST_IMAGE=rust:1.94-bookworm
 
 # ---------- stage 1: native cdylib ----------

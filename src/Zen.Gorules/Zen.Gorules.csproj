@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>Zen.Gorules</AssemblyName>
+    <RootNamespace>Zen.Gorules</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GoRules.Zen" Version="0.5.0" />
+    <PackageReference Include="GoRules.Zen.Native.linux-x64" Version="0.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Zen.Managed\Zen.Managed.csproj" />
+  </ItemGroup>
+
+</Project>

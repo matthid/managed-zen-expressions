@@ -17,7 +17,7 @@ pub enum Node {
     Current,
     Array(Vec<Node>),
     Object { keys: Vec<String>, values: Vec<Node> },
-    Unary { plus: bool, operand: Box<Node> },
+    Unary { plus: bool, not: bool, operand: Box<Node> },
     Binary { op: BinOp, l: Box<Node>, r: Box<Node> },
     Logical { and: bool, l: Box<Node>, r: Box<Node> },
     Compare { op: CmpOp, l: Box<Node>, r: Box<Node> },
@@ -127,9 +127,9 @@ impl Parser {
     fn prefix(&mut self) -> Result<Node, String> {
         let kind = self.peek().kind.clone();
         match kind {
-            Tok::Plus => { self.advance(); let o = self.expr(PREFIX_PLUSMINUS_BP)?; Ok(Node::Unary { plus: true, operand: Box::new(o) }) }
-            Tok::Minus => { self.advance(); let o = self.expr(PREFIX_PLUSMINUS_BP)?; Ok(Node::Unary { plus: false, operand: Box::new(o) }) }
-            Tok::Not => { self.advance(); let o = self.expr(PREFIX_NOT_BP)?; Ok(Node::Unary { plus: false, operand: Box::new(o) }) }
+            Tok::Plus => { self.advance(); let o = self.expr(PREFIX_PLUSMINUS_BP)?; Ok(Node::Unary { plus: true, not: false, operand: Box::new(o) }) }
+            Tok::Minus => { self.advance(); let o = self.expr(PREFIX_PLUSMINUS_BP)?; Ok(Node::Unary { plus: false, not: false, operand: Box::new(o) }) }
+            Tok::Not => { self.advance(); let o = self.expr(PREFIX_NOT_BP)?; Ok(Node::Unary { plus: false, not: true, operand: Box::new(o) }) }
             _ => self.primary(),
         }
     }
