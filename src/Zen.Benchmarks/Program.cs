@@ -26,8 +26,7 @@ internal static class Program
             return;
         }
 
-        var config = new ManualConfig()
-            .AddLogger(ConsoleLogger.Default)
+        IConfig config = DefaultConfig.Instance
             .AddExporter(MarkdownExporter.GitHub)
             .AddDiagnoser(MemoryDiagnoser.Default)
             .AddJob(Job.Default

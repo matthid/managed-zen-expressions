@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Zen.Gorules;
 using Zen.Interop;
 using Zen.Managed;
 
@@ -25,6 +27,7 @@ public static class MemoryReport
 
         // ----- eval paths -----
         Console.WriteLine("-- eval (JSON context, the realistic per-call path) --");
+        Console.WriteLine("  GoRules.Zen native heap is opaque; only its managed-side bytes are shown.");
         PrintHeader();
         foreach (var s in Scenarios.All)
         {
@@ -32,14 +35,17 @@ public static class MemoryReport
             using var nativeCtx = NativeContext.Parse(s.ContextJson);
             var managedExpr = ZenExpression.Compile(s.Expression);
             var managedCtx = ZenJson.Parse(s.ContextJson);
+            var gorulesExpr = GorulesZenExpression.Compile(s.Expression);
 
             double mPure = ManagedBytes(() => managedExpr.Evaluate(managedCtx));
             double mJson = ManagedBytes(() => managedExpr.Evaluate(s.ContextJson));
             double nPure = NativeBytes(() => nativeExpr.Evaluate(nativeCtx));
             double nJson = NativeBytes(() => nativeExpr.Evaluate(s.ContextJson));
+            double gManaged = ManagedBytesProcess(() => gorulesExpr.Evaluate(s.ContextJson));
 
             PrintRow(s.Name + " pure", mPure, nPure);
-            PrintRow(s.Name + " json", mJson, nJson);
+            PrintRow(s.Name + " json (managed)", mJson, nJson);
+            PrintRow(s.Name + " json (GoRules)", gManaged, -1, note: "native opaque");
         }
 
         // ----- parse -----
@@ -85,6 +91,19 @@ public static class MemoryReport
         return (double)(after - before) / N;
     }
 
+    // Process-wide allocation delta. Used for the GoRules engine, which dispatches
+    // its work to the thread pool, so per-thread accounting on the calling thread
+    // would miss the allocations done on the worker thread.
+    private static double ManagedBytesProcess(Action op)
+    {
+        for (int i = 0; i < 1000; i++) op();
+        GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
+        long before = GC.GetTotalAllocatedBytes(precise: true);
+        for (int i = 0; i < N; i++) op();
+        long after = GC.GetTotalAllocatedBytes(precise: true);
+        return (double)(after - before) / N;
+    }
+
     private static double NativeBytes(Action op)
     {
         for (int i = 0; i < 1000; i++) op();   // warm up
@@ -95,14 +114,14 @@ public static class MemoryReport
 
     private static void PrintHeader()
     {
-        Console.WriteLine($"  {"scenario",-18}{"managed B/op",14}{"native B/op",14}{"real B/op",14}{"native share",14}");
-        Console.WriteLine($"  {new string('-', 18)}{new string('-', 14)}{new string('-', 14)}{new string('-', 14)}{new string('-', 14)}");
+        Console.WriteLine($"  {"scenario",-22}{"managed B/op",14}{"native B/op",14}{"real B/op",14}{"note",-16}");
+        Console.WriteLine($"  {new string('-', 22)}{new string('-', 14)}{new string('-', 14)}{new string('-', 14)}{new string('-', 16)}");
     }
 
-    private static void PrintRow(string label, double managed, double native)
+    private static void PrintRow(string label, double managed, double nativeB, string note = "")
     {
-        double real = managed + native;
-        double share = real > 0 ? native / real : 0;
-        Console.WriteLine($"  {label,-18}{managed,14:N0}{native,14:N0}{real,14:N0}{share,13:P0}");
+        string nativeStr = nativeB < 0 ? "-" : $"{nativeB:N0}";
+        double real = nativeB < 0 ? managed : managed + nativeB;
+        Console.WriteLine($"  {label,-22}{managed,14:N0}{nativeStr,14}{real,14:N0}{note,-16}");
     }
 }

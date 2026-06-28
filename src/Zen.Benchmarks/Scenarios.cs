@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using Zen.Gorules;
 using Zen.Interop;
 using Zen.Managed;
 
@@ -20,6 +22,9 @@ public sealed class Scenario
     public ZenValue ManagedCtx { get; set; }
     public NativeZenExpression? NativeExpr { get; set; }
     public NativeContext? NativeCtx { get; set; }
+    public GorulesZenExpression? GorulesExpr { get; set; }
+    public JsonDocument? GorulesDoc { get; set; }
+    public JsonElement GorulesCtx { get; set; }
 
     public override string ToString() => Name;
 }

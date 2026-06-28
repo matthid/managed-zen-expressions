@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using Zen.Gorules;
 using Zen.Interop;
 using Zen.Managed;
 
@@ -29,6 +30,9 @@ public class EvalBench
         s.ManagedCtx = ZenJson.Parse(s.ContextJson);
         s.NativeExpr = NativeZenExpression.Compile(s.Expression);
         s.NativeCtx = NativeContext.Parse(s.ContextJson);
+        s.GorulesExpr = GorulesZenExpression.Compile(s.Expression);
+        s.GorulesDoc = System.Text.Json.JsonDocument.Parse(s.ContextJson);
+        s.GorulesCtx = s.GorulesDoc.RootElement.Clone();
     }
 
     [Benchmark(Baseline = true)]
@@ -38,10 +42,16 @@ public class EvalBench
     public ZenValue Native_Pure() => s.NativeExpr!.Evaluate(s.NativeCtx!);
 
     [Benchmark]
+    public ZenValue Gorules_Pure() => s.GorulesExpr!.Evaluate(s.GorulesCtx);
+
+    [Benchmark]
     public ZenValue Managed_Json() => s.ManagedExpr!.Evaluate(s.ContextJson);
 
     [Benchmark]
     public ZenValue Native_Json() => s.NativeExpr!.Evaluate(s.ContextJson);
+
+    [Benchmark]
+    public ZenValue Gorules_Json() => s.GorulesExpr!.Evaluate(s.ContextJson);
 }
 
 /// <summary>
