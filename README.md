@@ -40,6 +40,19 @@ to amortize the fixed marshalling cost — i.e. either enormous expressions or
 many evaluations batched inside a single native call. Single-expression calls of
 realistic size do not reach it.
 
+## Results at a glance
+
+![Evaluation throughput — compile-once / evaluate-many](docs/charts/eval-pure.svg)
+
+![Evaluation throughput — JSON context per call](docs/charts/eval-json.svg)
+
+![Memory per op — the native-heap blind spot](docs/charts/memory.svg)
+
+![Isolated P/Invoke overhead](docs/charts/interop.svg)
+
+*(Regenerate with `python3 scripts/generate_charts.py`; numbers transcribed from
+[`results/bench-full.txt`](results/bench-full.txt). AMD Ryzen 9 5900X, .NET 8.0.28.)*
+
 ## Repository layout
 
 ```
