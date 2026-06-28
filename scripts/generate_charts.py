@@ -41,6 +41,18 @@ def fmt_bytes(v):
     return f"{v:.0f} B"
 
 
+def fmt_kb(v):
+    if v >= 1024:
+        return f"{v/1024:.1f} MB"
+    return f"{v:.0f} KB"
+
+
+def fmt_ms(v):
+    if v > 0 and v < 1:
+        return f"{v*1000:.0f} µs"
+    return f"{v:.1f} ms"
+
+
 def grouped_bars(series, categories, title, note, fmt, fname,
                  log=True, width=980, height=430, floor=None):
     margin_l, margin_r, margin_t, margin_b = 64, 16, 56, 96
@@ -188,6 +200,52 @@ grouped_bars(
     title="Isolated P/Invoke overhead — the boundary itself is cheap (~7 ns)",
     note="linear scale · this is NOT what slows the native engines down",
     fmt=fmt_ns, log=False, floor=0, fname="interop.svg", width=560, height=320,
+)
+
+# ---- parse / compile throughput (ns) ----
+grouped_bars(
+    series=[
+        ("Managed", MANAGED, [522, 1558, 5751, 7025, 1062, 2200, 625]),
+        ("Native (manual)", NATIVE, [691, 1913, 10674, 11150, 1163, 2566, 684]),
+    ],
+    categories=SCENARIOS,
+    title="Parse / compile throughput (source text → compiled)",
+    note="log scale · lower is better · left 4 = scalar, right 3 = allocating",
+    fmt=fmt_ns, fname="parse.svg",
+)
+
+# ---- limits enforcement overhead (ns): Evaluate off vs on ----
+grouped_bars(
+    series=[
+        ("Off (no limits)", MANAGED, [141, 291, 2243, 2113, 296, 534, 1937]),
+        ("On (Default limits)", NATIVE, [141, 288, 2294, 2075, 301, 556, 1931]),
+    ],
+    categories=SCENARIOS,
+    title="Resource-limit enforcement overhead — Evaluate off vs on (near-zero)",
+    note="log scale · bars overlap because O(1) charging adds ~0-4%",
+    fmt=fmt_ns, fname="limits-overhead.svg",
+)
+
+# ---- binary footprint per engine (KB) ----
+grouped_bars(
+    series=[
+        ("Footprint shipped", MANAGED, [35, 591, 19228]),
+    ],
+    categories=["Managed", "Native (manual)", "GoRules (official)"],
+    title="Binary footprint — what you ship per engine",
+    note="log scale · GoRules ~19 MB (libzen_ffi + libcapstone) vs managed 35 KB",
+    fmt=fmt_kb, fname="footprint.svg", width=620, height=320,
+)
+
+# ---- cold first call per engine (ms) ----
+grouped_bars(
+    series=[
+        ("Cold first call", MANAGED, [13.0, 0.4, 55.0]),
+    ],
+    categories=["Managed", "Native (manual)", "GoRules (official)"],
+    title="Cold first call (fresh process: lib load + JIT + first eval)",
+    note="log scale · GoRules ~55 ms (dlopen 12 MB + UniFFI + thread-pool)",
+    fmt=fmt_ms, fname="cold-start.svg", width=620, height=320,
 )
 
 print("done")
