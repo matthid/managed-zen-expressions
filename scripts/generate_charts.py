@@ -162,13 +162,13 @@ grouped_bars(
 # ---- JSON-eval throughput (ns) ----
 grouped_bars(
     series=[
-        ("Managed (JSON)", MANAGED, [1074.3, 1622.6, 10485.4, 6252.3, 1074.2, 1536.8, 4670.1]),
+        ("Managed (JSON)", MANAGED, [806.1, 1242.0, 9200.7, 5282.0, 777.0, 1156.0, 3712.5]),
         ("Native manual (JSON)", NATIVE, [925.5, 1279.8, 10750.2, 5359.7, 1461.7, 2290.7, 6122.5]),
         ("GoRules.Zen", GORULES, [4327.8, 6558.5, 71957.8, 71741.6, 5459.7, 27439.1, 18904.8]),
     ],
     categories=SCENARIOS,
     title="Evaluation throughput — JSON context per call (parse + eval)",
-    note="log scale · lower is better · left 4 = scalar, right 3 = allocating",
+    note="log scale · lower is better · managed JSON reader optimized (Utf8JsonReader + ArrayPool)",
     fmt=fmt_ns, fname="eval-json.svg",
 )
 
@@ -258,9 +258,9 @@ grouped_bars(
 HEAVY = ["sum-1k", "arith-200", "filter-1k", "map-1k", "map-obj-100"]
 grouped_bars(
     series=[
-        ("Managed (pure)", MANAGED, [3.711, 9.304, 64.696, 85.299, 34.163]),
-        ("Native (pure)", NATIVE, [3.303, 10.608, 129.238, 222.610, 108.190]),
-        ("GoRules", GORULES, [163.696, 147.498, 296.014, 416.519, 276.224]),
+        ("Managed (pure)", MANAGED, [3.538, 9.639, 59.523, 79.245, 33.529]),
+        ("Native (pure)", NATIVE, [2.950, 9.520, 108.845, 194.779, 94.671]),
+        ("GoRules", GORULES, [162.722, 135.214, 281.302, 410.557, 272.453]),
     ],
     categories=HEAVY,
     title="Heavy load — pure-eval (pre-parsed context): native wins only on sum-1k",
@@ -271,13 +271,13 @@ grouped_bars(
 # ---- heavy-load crossover (JSON-eval, µs) ----
 grouped_bars(
     series=[
-        ("Managed (JSON)", MANAGED, [83.791, 42.947, 136.012, 150.624, 79.576]),
-        ("Native (JSON)", NATIVE, [29.212, 57.683, 150.589, 254.694, 152.648]),
-        ("GoRules", GORULES, [189.404, 135.064, 333.826, 478.283, 310.717]),
+        ("Managed (JSON)", MANAGED, [60.525, 38.106, 116.182, 148.347, 63.788]),
+        ("Native (JSON)", NATIVE, [26.582, 57.751, 131.198, 222.036, 134.529]),
+        ("GoRules", GORULES, [185.433, 145.154, 312.494, 426.534, 299.844]),
     ],
     categories=HEAVY,
-    title="Heavy load — JSON context per call: native 2.9x faster on sum-1k (serde > hand-rolled JSON)",
-    note="log scale · lower is better · large-array serde parse beats the managed JSON reader",
+    title="Heavy load — JSON per call: native still leads on sum-1k after ZenJson opt (84→61 µs)",
+    note="log scale · lower is better · serde parses 1000-element arrays faster than managed",
     fmt=fmt_us, fname="heavy-json.svg",
 )
 

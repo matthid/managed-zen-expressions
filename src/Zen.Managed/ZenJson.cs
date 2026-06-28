@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -15,12 +16,71 @@ public static class ZenJson
 {
     public static ZenValue Parse(string json)
     {
-        using var doc = JsonDocument.Parse(json ?? "null", new JsonDocumentOptions
+        if (string.IsNullOrEmpty(json)) return ZenValue.Null;
+        // Single-pass Utf8JsonReader → ZenValue. Avoids JsonDocument's pooled buffer
+        // and the double number-parse (JsonDocument tokenizes, then GetDouble re-parses);
+        // each number/atom is read exactly once and placed directly into the value tree.
+        var bytes = Encoding.UTF8.GetBytes(json);
+        var reader = new Utf8JsonReader(bytes, new JsonReaderOptions
         {
             AllowTrailingCommas = true,
             CommentHandling = JsonCommentHandling.Skip,
         });
-        return ToZen(doc.RootElement);
+        if (!reader.Read()) return ZenValue.Null;
+        return Consume(ref reader);
+    }
+
+    private static ZenValue Consume(ref Utf8JsonReader r)
+    {
+        switch (r.TokenType)
+        {
+            case JsonTokenType.Null: return ZenValue.Null;
+            case JsonTokenType.True: return ZenValue.True;
+            case JsonTokenType.False: return ZenValue.False;
+            case JsonTokenType.Number: return ZenValue.FromNumber(r.GetDouble());
+            case JsonTokenType.String: return ZenValue.FromString(r.GetString() ?? "");
+            case JsonTokenType.StartArray:
+            {
+                // ArrayPool-backed growth: avoids the ~log(n) resize allocations a
+                // List<> would create for large arrays (the heavy-load bottleneck).
+                var buf = ArrayPool<ZenValue>.Shared.Rent(16);
+                int n = 0;
+                try
+                {
+                    while (r.Read() && r.TokenType != JsonTokenType.EndArray)
+                    {
+                        if (n == buf.Length)
+                        {
+                            var bigger = ArrayPool<ZenValue>.Shared.Rent(buf.Length * 2);
+                            Array.Copy(buf, bigger, n);
+                            ArrayPool<ZenValue>.Shared.Return(buf);
+                            buf = bigger;
+                        }
+                        buf[n++] = Consume(ref r);
+                    }
+                    var exact = new ZenValue[n];
+                    Array.Copy(buf, exact, n);
+                    return ZenValue.FromArray(exact);
+                }
+                finally
+                {
+                    ArrayPool<ZenValue>.Shared.Return(buf);
+                }
+            }
+            case JsonTokenType.StartObject:
+            {
+                var dict = new Dictionary<string, ZenValue>(StringComparer.Ordinal);
+                while (r.Read() && r.TokenType == JsonTokenType.PropertyName)
+                {
+                    string key = r.GetString() ?? "";
+                    r.Read();
+                    dict[key] = Consume(ref r);
+                }
+                return ZenValue.FromObject(dict);
+            }
+            default:
+                throw new ZenException($"Unexpected JSON token {r.TokenType}");
+        }
     }
 
     /// <summary>Convert a <see cref="JsonElement"/> (e.g. a result from a third-party
