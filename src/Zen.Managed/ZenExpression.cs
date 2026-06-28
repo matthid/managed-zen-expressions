@@ -16,13 +16,28 @@ public sealed class ZenExpression
 
     private ZenExpression(Node root) { _root = root; }
 
-    /// <summary>Compile (lex + parse) a Zen expression into a reusable AST.</summary>
+    /// <summary>Compile (lex + parse) a Zen expression into a reusable AST.
+    /// Applies default parse guards (source length + recursion depth).</summary>
     public static ZenExpression Compile(string source)
-        => new(Parser.Parse(source));
+        => Compile(source, ZenLimits.Default);
 
-    /// <summary>Evaluate against an already-deserialised context value.</summary>
+    /// <summary>Compile with explicit parse guards.</summary>
+    public static ZenExpression Compile(string source, ZenLimits limits)
+    {
+        if (source.Length > limits.MaxSourceLength)
+            throw new ZenLimitException($"source length {source.Length} exceeds MaxSourceLength {limits.MaxSourceLength}");
+        return new(Parser.Parse(source, limits.MaxParseDepth));
+    }
+
+    /// <summary>Evaluate against an already-deserialised context value. Unlimited (fast path).</summary>
     public ZenValue Evaluate(ZenValue context) => ThreadEvaluator.Evaluate(_root, context);
 
-    /// <summary>Evaluate against a JSON context string (parse + eval).</summary>
+    /// <summary>Evaluate with a deterministic resource budget (steps / allocations / bytes).</summary>
+    public ZenValue Evaluate(ZenValue context, ZenLimits limits) => ThreadEvaluator.Evaluate(_root, context, limits);
+
+    /// <summary>Evaluate against a JSON context string (parse + eval), unlimited.</summary>
     public ZenValue Evaluate(string contextJson) => Evaluate(ZenJson.Parse(contextJson));
+
+    /// <summary>Evaluate against a JSON context string with a resource budget.</summary>
+    public ZenValue Evaluate(string contextJson, ZenLimits limits) => Evaluate(ZenJson.Parse(contextJson), limits);
 }

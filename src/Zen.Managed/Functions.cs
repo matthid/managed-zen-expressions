@@ -91,14 +91,16 @@ internal static class Functions
         t["boolean"] = (ev, a) => ZenValue.FromBoolean(ev.GetArg(a, 0).IsTruthy);
 
         // --- string ---
-        t["upper"] = (ev, a) => ZenValue.FromString((ev.GetArg(a, 0).String ?? "").ToUpperInvariant());
-        t["lower"] = (ev, a) => ZenValue.FromString((ev.GetArg(a, 0).String ?? "").ToLowerInvariant());
-        t["trim"] = (ev, a) => ZenValue.FromString((ev.GetArg(a, 0).String ?? "").Trim());
+        t["upper"] = (ev, a) => { string s = (ev.GetArg(a, 0).String ?? "").ToUpperInvariant(); ev.ChargeAlloc(1, s.Length * 2L + 40); return ZenValue.FromString(s); };
+        t["lower"] = (ev, a) => { string s = (ev.GetArg(a, 0).String ?? "").ToLowerInvariant(); ev.ChargeAlloc(1, s.Length * 2L + 40); return ZenValue.FromString(s); };
+        t["trim"] = (ev, a) => { string s = (ev.GetArg(a, 0).String ?? "").Trim(); ev.ChargeAlloc(1, s.Length * 2L + 40); return ZenValue.FromString(s); };
         t["concat"] = (ev, a) =>
         {
             var sb = new System.Text.StringBuilder();
             for (int i = 0; i < a.Length; i++) sb.Append(Evaluator.Stringify(ev.GetArg(a, i)));
-            return ZenValue.FromString(sb.ToString());
+            string s = sb.ToString();
+            ev.ChargeAlloc(1, s.Length * 2L + 40);
+            return ZenValue.FromString(s);
         };
         t["contains"] = (ev, a) =>
             ZenValue.FromBoolean((ev.GetArg(a, 0).String ?? "").Contains(ev.GetArg(a, 1).String ?? ""));
@@ -113,22 +115,26 @@ internal static class Functions
             string s = ev.GetArg(a, 0).String ?? "";
             int start = (int)N(ev.GetArg(a, 1));
             if (start < 0) start = 0;
+            string result;
             if (a.Length > 2)
             {
                 int end = (int)N(ev.GetArg(a, 2));
                 if (end < start) end = start;
                 if (end > s.Length) end = s.Length;
-                return ZenValue.FromString(s.Substring(start, end - start));
+                result = s.Substring(start, end - start);
             }
-            return ZenValue.FromString(start >= s.Length ? "" : s.Substring(start));
+            else result = start >= s.Length ? "" : s.Substring(start);
+            ev.ChargeAlloc(1, result.Length * 2L + 40);
+            return ZenValue.FromString(result);
         };
         t["replace"] = (ev, a) =>
-            ZenValue.FromString((ev.GetArg(a, 0).String ?? "").Replace(ev.GetArg(a, 1).String ?? "", ev.GetArg(a, 2).String ?? ""));
+        { string s = (ev.GetArg(a, 0).String ?? "").Replace(ev.GetArg(a, 1).String ?? "", ev.GetArg(a, 2).String ?? ""); ev.ChargeAlloc(1, s.Length * 2L + 40); return ZenValue.FromString(s); };
         t["split"] = (ev, a) =>
         {
             string s = ev.GetArg(a, 0).String ?? "";
             string sep = ev.GetArg(a, 1).String ?? "";
             var parts = sep.Length == 0 ? new[] { s } : s.Split(sep);
+            ev.ChargeAlloc(parts.Length, s.Length * 2L + parts.Length * 40L + 56);
             return ZenValue.FromArray(parts.Select(ZenValue.FromString).ToArray());
         };
 
@@ -168,6 +174,7 @@ internal static class Functions
                 var result = new ZenValue[src.Array!.Length];
                 for (int i = 0; i < result.Length; i++)
                     result[i] = ev.EvalWithElement(body, src.Array[i]);
+                ev.ChargeAlloc(1, result.Length * 24L + 56);
                 return ZenValue.FromArray(result);
             }
             case "filter":
@@ -175,7 +182,9 @@ internal static class Functions
                 var result = new List<ZenValue>();
                 foreach (var e in src.Array!)
                     if (ev.EvalWithElement(body, e).IsTruthy) result.Add(e);
-                return ZenValue.FromArray(result.ToArray());
+                var arr = result.ToArray();
+                ev.ChargeAlloc(1, arr.Length * 24L + 56);
+                return ZenValue.FromArray(arr);
             }
             case "some":
             {

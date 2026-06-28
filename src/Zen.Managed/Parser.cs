@@ -15,13 +15,17 @@ internal sealed class Parser
 {
     private readonly Token[] _tokens;
     private int _pos;
+    private int _depth;
+    private readonly int _maxDepth;
 
-    private Parser(Token[] tokens) { _tokens = tokens; }
+    private Parser(Token[] tokens, int maxDepth) { _tokens = tokens; _maxDepth = maxDepth; }
 
-    public static Node Parse(string source)
+    public static Node Parse(string source) => Parse(source, ZenLimits.Default.MaxParseDepth);
+
+    public static Node Parse(string source, int maxParseDepth)
     {
         var tokens = Lexer.Tokenize(source);
-        var p = new Parser(tokens);
+        var p = new Parser(tokens, maxParseDepth);
         Node expr = p.ParseExpression(0);
         if (p.Peek().Kind != TokenKind.Eof)
             throw new ZenException($"Unexpected token {p.Peek()} after expression");
@@ -42,7 +46,11 @@ internal sealed class Parser
 
     private Node ParseExpression(int minBp)
     {
-        Node left = ParsePrefix();
+        if (++_depth > _maxDepth)
+            throw new ZenLimitException($"parse depth exceeded ({_depth} > {_maxDepth})");
+        try
+        {
+            Node left = ParsePrefix();
 
         while (true)
         {
@@ -119,7 +127,9 @@ internal sealed class Parser
             }
         }
 
-        return left;
+            return left;
+        }
+        finally { _depth--; }
     }
 
     private const int PostfixBpValue = 1000;

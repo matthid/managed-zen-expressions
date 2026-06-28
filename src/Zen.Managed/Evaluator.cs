@@ -11,18 +11,65 @@ namespace Zen.Managed;
 internal sealed class Evaluator
 {
     private ZenValue _context;
-    private readonly ZenValue[] _elementStack = new ZenValue[32];
+    private ZenValue[] _elementStack = new ZenValue[32];
     private int _elementTop = -1;
+
+    // Resource accounting (only active when _limits != null).
+    private ZenLimits? _limits;
+    private long _steps;
+    private long _allocs;
+    private long _bytes;
 
     public ZenValue Evaluate(Node root, ZenValue context)
     {
         _context = context;
         _elementTop = -1;
+        _limits = null;            // fast path: no enforcement, zero per-node overhead beyond a predicted branch
         return Eval(root);
+    }
+
+    public ZenValue Evaluate(Node root, ZenValue context, ZenLimits limits)
+    {
+        _context = context;
+        _elementTop = -1;
+        _limits = limits;
+        _steps = 0;
+        _allocs = 0;
+        _bytes = 0;
+        return Eval(root);
+    }
+
+    /// <summary>Charge one AST-node visit against the step budget. No-op without limits.</summary>
+    private void ChargeStep()
+    {
+        if (_limits != null && ++_steps > _limits.MaxSteps)
+            throw new ZenLimitException($"step budget exceeded ({_steps} > {_limits.MaxSteps})");
+    }
+
+    /// <summary>Charge a structural allocation (array/object/string) with a byte estimate.</summary>
+    internal void ChargeAlloc(long count, long bytes)
+    {
+        if (_limits == null) return;
+        _allocs += count;
+        _bytes += bytes;
+        if (_allocs > _limits.MaxAllocations)
+            throw new ZenLimitException($"allocation budget exceeded ({_allocs} > {_limits.MaxAllocations})");
+        if (_bytes > _limits.MaxBytes)
+            throw new ZenLimitException($"byte budget exceeded ({_bytes} > {_limits.MaxBytes})");
+    }
+
+    private void PushElement(ZenValue v)
+    {
+        if (++_elementTop >= _elementStack.Length)
+        {
+            Array.Resize(ref _elementStack, _elementStack.Length * 2);
+        }
+        _elementStack[_elementTop] = v;
     }
 
     private ZenValue Eval(Node n)
     {
+        ChargeStep();
         switch (n.Kind)
         {
             case NodeKind.Literal: return n.Value;
@@ -33,6 +80,7 @@ internal sealed class Evaluator
             {
                 var arr = new ZenValue[n.List.Length];
                 for (int i = 0; i < arr.Length; i++) arr[i] = Eval(n.List[i]);
+                ChargeAlloc(1, arr.Length * 24L + 56);
                 return ZenValue.FromArray(arr);
             }
 
@@ -40,6 +88,7 @@ internal sealed class Evaluator
             {
                 var dict = new Dictionary<string, ZenValue>(n.Keys.Length, StringComparer.Ordinal);
                 for (int i = 0; i < n.Keys.Length; i++) dict[n.Keys[i]] = Eval(n.List[i]);
+                ChargeAlloc(1, dict.Count * 48L + 96);
                 return ZenValue.FromObject(dict);
             }
 
@@ -120,7 +169,11 @@ internal sealed class Evaluator
 
         // String concatenation for `+` when either side is a string.
         if (n.BinOp == BinOp.Add && (l.Kind == ZenKind.String || r.Kind == ZenKind.String))
-            return ZenValue.FromString(Stringify(l) + Stringify(r));
+        {
+            string s = Stringify(l) + Stringify(r);
+            ChargeAlloc(1, s.Length * 2L + 40);
+            return ZenValue.FromString(s);
+        }
 
         double a = CanonNumber(l), b = CanonNumber(r);
         return n.BinOp switch
@@ -274,7 +327,7 @@ internal sealed class Evaluator
     // Closures push the current element onto the stack while evaluating a body node.
     internal ZenValue EvalWithElement(Node body, ZenValue element)
     {
-        _elementStack[++_elementTop] = element;
+        PushElement(element);
         try { return Eval(body); }
         finally { _elementTop--; }
     }
