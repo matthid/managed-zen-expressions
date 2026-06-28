@@ -25,6 +25,11 @@ internal static class Program
             Probe.Run();
             return;
         }
+        if (args.Contains("--overhead"))
+        {
+            OverheadReport.Run();
+            return;
+        }
 
         IConfig config = DefaultConfig.Instance
             .AddExporter(MarkdownExporter.GitHub)
