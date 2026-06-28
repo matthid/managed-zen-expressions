@@ -7,7 +7,10 @@ namespace Zen.Managed;
 /// an expression that a quiet one accepted.
 ///
 /// <list type="bullet">
-/// <item><see cref="MaxSteps"/> bounds total work (one charge per AST node visit).</item>
+/// <item><see cref="MaxSteps"/> bounds iteration-driven work: array elements processed by
+///   <c>sum</c>/<c>avg</c>/<c>min</c>/<c>max</c>/<c>map</c>/<c>filter</c>/<c>some</c>/<c>all</c>/<c>in</c>.
+///   Charged O(1) up-front per call, so non-iterative expressions pay <b>zero</b> step overhead.
+///   Static (non-iterative) work is bounded by <see cref="MaxSourceLength"/> at parse time.</item>
 /// <item><see cref="MaxAllocations"/>/<see cref="MaxBytes"/> bound memory by counting the
 ///   high-level structural allocations the evaluator makes (arrays, objects, dynamic strings)
 ///   with a size estimate each. (Scalars — numbers/bools/null — are struct values and never charged.)</item>
@@ -18,10 +21,11 @@ namespace Zen.Managed;
 /// Eval-time limits are <b>opt-in</b>: <c>Evaluate(context)</c> enforces nothing (the
 /// fast path used by benchmarks); pass a <see cref="ZenLimits"/> to <c>Evaluate</c> to
 /// sandbox untrusted expressions. Parse-time guards are applied by default (they are cheap).
+/// Enforcing limits is engineered for near-zero overhead — see <c>LimitsBench</c>.
 /// </summary>
 public sealed class ZenLimits
 {
-    /// <summary>Maximum AST node visits during one evaluation.</summary>
+    /// <summary>Maximum array-elements processed by iterating operations during one evaluation.</summary>
     public long MaxSteps { get; set; } = 1_000_000;
 
     /// <summary>Maximum number of structural allocations (arrays/objects/strings).</summary>
@@ -42,7 +46,7 @@ public sealed class ZenLimits
     /// <summary>Stricter budget for hostile input.</summary>
     public static ZenLimits Strict { get; } = new ZenLimits
     {
-        MaxSteps = 10_000,
+        MaxSteps = 1_000,            // iterations (array elements processed)
         MaxAllocations = 10_000,
         MaxBytes = 4L * 1024 * 1024,
         MaxSourceLength = 64_000,

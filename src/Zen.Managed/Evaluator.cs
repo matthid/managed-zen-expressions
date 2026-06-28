@@ -39,10 +39,14 @@ internal sealed class Evaluator
         return Eval(root);
     }
 
-    /// <summary>Charge one AST-node visit against the step budget. No-op without limits.</summary>
-    private void ChargeStep()
+    /// <summary>Charge <paramref name="count"/> iteration steps (array elements processed
+    /// by sum/avg/min/max/map/filter/some/all/in) against the step budget. O(1) per call,
+    /// so enforcing limits costs nothing on non-iterative expressions. No-op without limits.</summary>
+    internal void ChargeSteps(long count)
     {
-        if (_limits != null && ++_steps > _limits.MaxSteps)
+        if (_limits == null) return;
+        _steps += count;
+        if (_steps > _limits.MaxSteps)
             throw new ZenLimitException($"step budget exceeded ({_steps} > {_limits.MaxSteps})");
     }
 
@@ -69,7 +73,9 @@ internal sealed class Evaluator
 
     private ZenValue Eval(Node n)
     {
-        if (_limits != null) ChargeStep();   // guarded: no call on the unlimited fast path
+        // No per-node step counting: static (non-iterative) work is bounded by the
+        // source-length parse guard; iteration-driven work is charged at the
+        // array-iterating operations (see ChargeSteps). Zero overhead here.
         switch (n.Kind)
         {
             case NodeKind.Literal: return n.Value;
@@ -297,6 +303,7 @@ internal sealed class Evaluator
             ZenValue coll = Eval(n.B!);
             if (coll.Kind == ZenKind.Array)
             {
+                ChargeSteps(coll.Array!.Length);
                 result = false;
                 foreach (var e in coll.Array!)
                     if (DeepEqual(e, value)) { result = true; break; }

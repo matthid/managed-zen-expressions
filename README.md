@@ -222,10 +222,28 @@ var result = expr.Evaluate(context, ZenLimits.Default);   // enforces the budget
 - **Opt-in for eval:** `Evaluate(ctx)` enforces nothing (the fast path the
   benchmarks measure); pass a `ZenLimits` to sandbox untrusted input. Parse guards
   are on by default (cheap). When off, the guards add **no measurable overhead**.
+- **Near-zero enforcement overhead:** `MaxSteps` is charged **O(1) up-front** at
+  array-iterating ops (`sum`/`avg`/`min`/`max`/`map`/`filter`/`some`/`all`/`in`),
+  not per AST node; static work is bounded by `MaxSourceLength` at parse time. So
+  non-iterative expressions pay nothing to enforce limits. Measured (`LimitsBench`,
+  `Evaluate` without limits vs with Default/Strict):
+
+  | Scenario | Off | On (Default) | overhead |
+  | --- | ---: | ---: | ---: |
+  | simple-few   | 141 ns | 141 ns | ~0% |
+  | complex-few  | 291 ns | 288 ns | ~0% |
+  | simple-many  | 2 243 ns | 2 294 ns | +2% |
+  | complex-many | 2 113 ns | 2 075 ns | ~0% |
+  | alloc-string | 296 ns | 301 ns | +1% |
+  | alloc-object | 534 ns | 556 ns | +4% |
+  | alloc-array  | 1 937 ns | 1 931 ns | ~0% |
+
+  (An earlier per-node counter charged 5–12%; the O(1) iteration design brought it
+  to within noise.)
 - **DoS-safe:** the language has no user-defined recursion, so there are no
-  infinite loops; `map`/`filter`/`some`/`all` are bounded by array length, and
-  every node visit and structural allocation is charged. A hostile expression or
-  huge input array aborts deterministically instead of hanging or OOMing.
+  infinite loops; iterating operations are bounded by `MaxSteps`, allocations by
+  `MaxAllocations`/`MaxBytes`. A hostile expression or huge input array aborts
+  deterministically instead of hanging or OOMing.
 - Aborts throw `ZenLimitException`. Covered by `LimitTests` (7 cases, incl.
   deterministic-repeat and hostile-input).
 

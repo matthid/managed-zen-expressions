@@ -94,3 +94,35 @@ public class InteropOverheadBench
     [Benchmark]
     public double Native_Add() => NativeMemory.ProbeAdd(1.5, 2.5);
 }
+
+/// <summary>
+/// Measures the overhead of ENFORCING <see cref="ZenLimits"/> on the hot path:
+/// Evaluate without limits (baseline) vs with Default / Strict budgets.
+/// </summary>
+[MemoryDiagnoser]
+public class LimitsBench
+{
+    [ParamsSource(nameof(Names))]
+    public string ScenarioName { get; set; } = "";
+
+    public static IEnumerable<string> Names => Scenarios.AllNames;
+
+    private Scenario s = null!;
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        s = Scenarios.ByName(ScenarioName);
+        s.ManagedExpr = ZenExpression.Compile(s.Expression);
+        s.ManagedCtx = ZenJson.Parse(s.ContextJson);
+    }
+
+    [Benchmark(Baseline = true)]
+    public ZenValue Off() => s.ManagedExpr!.Evaluate(s.ManagedCtx);
+
+    [Benchmark]
+    public ZenValue On_Default() => s.ManagedExpr!.Evaluate(s.ManagedCtx, ZenLimits.Default);
+
+    [Benchmark]
+    public ZenValue On_Strict() => s.ManagedExpr!.Evaluate(s.ManagedCtx, ZenLimits.Strict);
+}

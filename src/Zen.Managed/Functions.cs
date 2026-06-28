@@ -38,8 +38,9 @@ internal static class Functions
         {
             var v = ev.GetArg(a, 0);
             if (v.Kind != ZenKind.Array) throw new ZenException("sum() expects an array");
+            ev.ChargeSteps(v.Array!.Length);
             double s = 0;
-            foreach (var e in v.Array!) s += N(e);
+            foreach (var e in v.Array) s += N(e);
             return ZenValue.FromNumber(s);
         };
 
@@ -48,13 +49,14 @@ internal static class Functions
             var v = ev.GetArg(a, 0);
             if (v.Kind != ZenKind.Array) throw new ZenException("avg() expects an array");
             if (v.Array!.Length == 0) return ZenValue.FromNumber(0);
+            ev.ChargeSteps(v.Array.Length);
             double s = 0;
             foreach (var e in v.Array) s += N(e);
             return ZenValue.FromNumber(s / v.Array.Length);
         };
 
-        t["min"] = (ev, a) => AggregateMinMax(ev.GetArg(a, 0), max: false);
-        t["max"] = (ev, a) => AggregateMinMax(ev.GetArg(a, 0), max: true);
+        t["min"] = (ev, a) => { var v = ev.GetArg(a, 0); if (v.Kind == ZenKind.Array && v.Array!.Length > 0) ev.ChargeSteps(v.Array.Length); return AggregateMinMax(v, max: false); };
+        t["max"] = (ev, a) => { var v = ev.GetArg(a, 0); if (v.Kind == ZenKind.Array && v.Array!.Length > 0) ev.ChargeSteps(v.Array.Length); return AggregateMinMax(v, max: true); };
 
         t["count"] = (ev, a) =>
         {
@@ -165,6 +167,7 @@ internal static class Functions
         var src = ev.GetArg(a, 0);
         if (src.Kind != ZenKind.Array)
             throw new ZenException($"{mode}() expects an array as the first argument");
+        ev.ChargeSteps(src.Array!.Length);   // O(1) up-front; aborts before the work if over budget
         Node body = a[1];
 
         switch (mode)
