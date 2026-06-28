@@ -88,6 +88,12 @@ public static class ParityCases
         yield return Row("object-literal", "{a: 1, b: x + 1}", "{\"x\":5}");
         yield return Row("computed-index", "grades[score >= 90 ? 'high' : 'low']", "{\"grades\":{\"high\":\"A\",\"low\":\"C\"},\"score\":95}");
         yield return Row("string-template-via-concat", "'Hi ' + first + ' ' + last + '!'", "{\"first\":\"Ada\",\"last\":\"Lovelace\"}");
+
+        // Allocating / data-reshaping expressions (build arrays, objects, strings).
+        yield return Row("alloc-map-array", "map(numbers, # * # + offset)", "{\"numbers\":[1,2,3,4,5],\"offset\":1}");
+        yield return Row("alloc-object-build", "{ total: sum(prices), count: len(prices), avg: round(sum(prices) / len(prices), 2), max: max(prices) }", "{\"prices\":[10,20,30]}");
+        yield return Row("alloc-string-build", "prefix + '-' + string(id) + '-' + upper(status)", "{\"prefix\":\"ORD\",\"id\":4815,\"status\":\"pending\"}");
+        yield return Row("alloc-filter-array", "filter(scores, # >= threshold)", "{\"scores\":[40,60,80,90],\"threshold\":60}");
     }
 
     /// <summary>Generated cases with many input parameters.</summary>

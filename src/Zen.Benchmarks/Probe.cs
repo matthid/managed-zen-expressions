@@ -17,22 +17,34 @@ public static class Probe
             ("sum(map(items, # * 2))", "{\"items\":[1,2,3,4]}"),
             ("not true", "{}"),
             ("!true", "{}"),
+            // string-building variants to find what GoRules supports:
+            ("concat('a','b','c')", "{}"),
+            ("upper('abc')", "{}"),
+            ("'x' + string(id)", "{\"id\":42}"),
+            ("prefix + '-' + string(id) + '-' + upper(status)", "{\"prefix\":\"ORD\",\"id\":4815,\"status\":\"pending\"}"),
+            ("prefix + ' ' + upper(status)", "{\"prefix\":\"ORD\",\"status\":\"pending\"}"),
+            ("upper(prefix) + '-' + lower(status)", "{\"prefix\":\"ORD\",\"status\":\"PENDING\"}"),
         };
 
         foreach (var (expr, ctx) in cases)
         {
-            var managed = ZenExpression.Compile(expr).Evaluate(ctx);
-            var manualNative = NativeZenExpression.Compile(expr).Evaluate(ctx);
-
-            var gr = GorulesZenExpression.Compile(expr);
-            using var doc = JsonDocument.Parse(ctx);
-            var gorules = gr.Evaluate(doc.RootElement);
+            string managed, manualNative, gorules;
+            try { managed = ZenJson.Serialize(ZenExpression.Compile(expr).Evaluate(ctx)); }
+            catch (Exception ex) { managed = "THROW: " + ex.Message.Split('\n')[0]; }
+            try { manualNative = ZenJson.Serialize(NativeZenExpression.Compile(expr).Evaluate(ctx)); }
+            catch (Exception ex) { manualNative = "THROW: " + ex.Message.Split('\n')[0]; }
+            try
+            {
+                var gr = GorulesZenExpression.Compile(expr);
+                using var doc = JsonDocument.Parse(ctx);
+                gorules = ZenJson.Serialize(gr.Evaluate(doc.RootElement));
+            }
+            catch (Exception ex) { gorules = "THROW: " + ex.GetType().Name + ": " + ex.Message.Split('\n')[0]; }
 
             Console.WriteLine($"expr: {expr}");
-            Console.WriteLine($"  managed     : {ZenJson.Serialize(managed)}");
-            Console.WriteLine($"  manual native: {ZenJson.Serialize(manualNative)}");
-            Console.WriteLine($"  GoRules.Zen : {ZenJson.Serialize(gorules)}");
-            Console.WriteLine($"  match(managed==gorules): {ZenCompare.DeepEquals(managed, gorules, 1e-9)}");
+            Console.WriteLine($"  managed      : {managed}");
+            Console.WriteLine($"  manual native: {manualNative}");
+            Console.WriteLine($"  GoRules.Zen  : {gorules}");
             Console.WriteLine();
         }
     }

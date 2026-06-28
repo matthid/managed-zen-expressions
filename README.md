@@ -30,10 +30,13 @@ beats both native engines for every expression size tested, because:
    + thread-pool dispatch + full JSON context round-trip), so it is **20–34×
    slower** than managed pure-eval regardless of expression size. Its API offers
    no "pre-compiled / pre-parsed context" fast path.
-3. The **managed hot path allocates zero GC bytes** (discriminated `struct`
-   values hold arrays/objects *by reference*). The native engines allocate on a
-   **hidden native heap that .NET metrics cannot see** — a memory-accountability
-   trap, not an advantage.
+3. The managed hot path allocates **zero GC bytes for scalar-producing
+   expressions** (condition evaluation — discriminated `struct` values hold
+   arrays/objects *by reference*). Expressions that *reshape* data (`map`,
+   object literals, string building) do allocate — 264–824 B/op here — but still
+   less than the native engines, which allocate on a **hidden native heap that
+   .NET metrics cannot see**. That hidden heap is a memory-accountability trap,
+   not an advantage.
 
 The crossover where native *would* pay off requires per-call work large enough
 to amortize the fixed marshalling cost — i.e. either enormous expressions or
@@ -46,7 +49,9 @@ realistic size do not reach it.
 
 ![Evaluation throughput — JSON context per call](docs/charts/eval-json.svg)
 
-![Memory per op — the native-heap blind spot](docs/charts/memory.svg)
+![Pure-eval memory — managed is 0 only for scalar expressions](docs/charts/memory-pure.svg)
+
+![JSON-eval memory — the native-heap blind spot](docs/charts/memory-json.svg)
 
 ![Isolated P/Invoke overhead](docs/charts/interop.svg)
 
@@ -86,35 +91,47 @@ docker run --rm -v "$PWD":/work -w /work zen-dev dotnet run    -c Release --proj
 ## Results
 
 Hardware: AMD Ryzen 9 5900X, .NET 8.0.28, Linux container. Full output:
-[`results/bench-full.txt`](results/bench-full.txt). (4 scenarios = simple/complex ×
-few/many input parameters.)
+[`results/bench-full.txt`](results/bench-full.txt). 7 scenarios: the first four are
+scalar-producing (simple/complex × few/many); the last three are **allocating /
+data-reshaping** (`map` → array, object literal, string building).
 
 ### Evaluation throughput (lower is better)
 
 | Scenario | Managed pure | Native pure (manual) | GoRules (official) | Managed JSON | Native JSON (manual) | GoRules JSON |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| simple-few   | **152 ns** | 470 ns (3.1×) | 3 918 ns (25.7×) | 1 096 ns | 975 ns | 4 400 ns |
-| complex-few  | **309 ns** | 575 ns (1.9×) | 6 293 ns (20.4×) | 1 612 ns | **1 317 ns** | 6 540 ns |
-| simple-many  | **2 412 ns** | 2 561 ns (1.1×) | 62 161 ns (25.8×) | 10 875 ns | 10 558 ns | 68 307 ns |
-| complex-many| **2 167 ns** | 2 213 ns (1.0×) | 67 466 ns (31.1×) | 6 265 ns | **5 086 ns** | 73 762 ns |
+| simple-few    | **148 ns** | 457 ns (3.1×) | 3 571 ns (24×) | 1 074 ns | 926 ns | 4 328 ns |
+| complex-few   | **306 ns** | 558 ns (1.8×) | 6 436 ns (21×) | 1 623 ns | 1 280 ns | 6 559 ns |
+| simple-many   | **2 340 ns** | 2 478 ns (1.1×) | 59 053 ns (25×) | 10 485 ns | 10 750 ns | 71 958 ns |
+| complex-many  | **2 163 ns** | 2 183 ns (1.0×) | 67 934 ns (31×) | 6 252 ns | 5 360 ns | 71 742 ns |
+| alloc-string  | **306 ns** | 969 ns (3.2×) | 4 356 ns (14×) | 1 074 ns | 1 462 ns | 5 460 ns |
+| alloc-object  | **548 ns** | 1 871 ns (3.4×) | 9 804 ns (18×) | 1 537 ns | 2 291 ns | 27 439 ns |
+| alloc-array   | **1 943 ns** | 5 227 ns (2.7×) | 25 382 ns (13×) | 4 670 ns | 6 123 ns | 18 905 ns |
 
 Takeaways:
-- **Pure-eval (compile-once / eval-many):** managed is fastest and ties manual-native
-  on the "many" cases; manual-native loses only on tiny expressions where the fixed
-  result-marshalling cost dominates the ~150 ns of work.
-- **JSON-eval (parse context + eval, the realistic per-call path):** managed and
-  manual-native are within a few percent. GoRules is **20–34× slower** because its
-  `Evaluate<T>` API is async + always serializes the context object + dispatches to
-  the thread pool.
+- **Managed wins every cell.** On pure-eval it ties manual-native only for the
+  largest scalar expression (`complex-many`); everywhere else it is faster, and on
+  the allocating expressions it beats manual-native by **2.7–3.4×**.
+- **Allocating expressions are the honest case:** managed pure-eval is *not*
+  zero-alloc here (it builds the result array/object/string) — see the memory
+  table — yet it still leads on both speed and allocation.
+- **GoRules is 13–31× slower** than managed pure-eval. Its `Evaluate<T>` API is
+  async, always serializes the context object, and dispatches to the thread pool;
+  it offers no pre-compiled / pre-parsed-context fast path.
+- **JSON-eval** (parse context + eval): managed and manual-native are within a few
+  percent on scalars; on allocating expressions managed pulls ahead because native
+  must also marshal the (now non-scalar) result back across the boundary.
 
 ### Parse / compile (lower is better)
 
 | Scenario | Managed | Native (manual) |
 | --- | ---: | ---: |
-| simple-few    | **528 ns** | 751 ns (1.4×) |
-| complex-few   | **1 576 ns** | 2 101 ns (1.3×) |
-| simple-many   | **5 773 ns** | 10 668 ns (1.8×) |
-| complex-many  | **7 655 ns** | 11 718 ns (1.5×) |
+| simple-few    | **522 ns** | 691 ns (1.3×) |
+| complex-few   | **1 558 ns** | 1 913 ns (1.2×) |
+| simple-many   | **5 751 ns** | 10 674 ns (1.9×) |
+| complex-many  | **7 025 ns** | 11 150 ns (1.6×) |
+| alloc-string  | **1 062 ns** | 1 163 ns (1.1×) |
+| alloc-object  | **2 200 ns** | 2 566 ns (1.2×) |
+| alloc-array   | **625 ns** | 684 ns (1.1×) |
 
 Managed parsing is faster across the board (fewer allocations, no interop).
 
@@ -133,18 +150,32 @@ BenchmarkDotNet's `Allocated` column is **GC-heap only**. It makes the native
 engines look nearly allocation-free, which is misleading. The `--mem` report uses
 the instrumented allocator in the manual native lib to show the *real* picture:
 
-| Path | Managed GC B/op | Native heap B/op | Real B/op |
-| --- | ---: | ---: | ---: |
-| pure-eval (any)             | **0** | ~140 | ~140 |
-| json-eval simple-many       | 11 192 | 8 732 | ~19 900 |
-| json-eval complex-many      | 5 184  | 5 962 | ~11 100 |
-| parse simple-many           | 20 944 | 13 828 | ~34 800 |
+**Pure-eval** (compile-once / eval-many) — managed is 0 only for scalar expressions:
 
-- On the **pure** hot path managed allocates **nothing**; native still allocates the
-  result buffer + bookkeeping (~140 B). Managed wins decisively.
+| Scenario | Managed GC B/op | Native heap B/op |
+| --- | ---: | ---: |
+| simple-few / complex-few / simple-many / complex-many | **0** | ~140–148 |
+| alloc-string | 264 | 593 |
+| alloc-object | 552 | 833 |
+| alloc-array  | 824 | 966 |
+
+**JSON-eval** (parse context per call) — native hides most cost on its heap:
+
+| Scenario | Managed GC B/op | Native heap B/op |
+| --- | ---: | ---: |
+| simple-few   | 952 | 1 281 |
+| complex-few  | 1 080 | 1 344 |
+| simple-many  | 11 192 | 8 732 |
+| complex-many | 5 184 | 5 962 |
+| alloc-string | 832 | 1 849 |
+| alloc-object | 1 760 | 2 477 |
+| alloc-array  | 4 640 | 4 400 |
+
+- On the **pure** scalar hot path managed allocates **nothing**; on allocating
+  expressions it allocates the result (264–824 B) — still less than native.
 - On the **JSON** path, native pushes most allocation onto its **hidden heap** — BDN
   reports only ~150–560 managed B/op for native-json, but the *real* footprint
-  (~6–9 KB/op of serde-parsed context) only shows up via the counting allocator.
+  (up to ~9 KB/op of serde-parsed context) only shows up via the counting allocator.
   **Don't trust GC-only numbers to compare against native code.**
 - Native heap retained after 20 000 evals: **0 bytes** — no leaks; everything
   transient is freed.
@@ -154,9 +185,9 @@ the instrumented allocator in the manual native lib to show the *real* picture:
 A native engine wins when **per-call native CPU work ≫ fixed interop + marshalling
 cost**. Here the marshalling floor (result JSON round-trip ≈ hundreds of ns for
 the manual path; async + context-serialize ≈ ~4 µs for GoRules) is comparable to
-or larger than the expression work itself (150 ns–2.4 µs). So the managed JIT —
+or larger than the expression work itself (148 ns–2.3 µs). So the managed JIT —
 already very fast on arithmetic and dictionary lookups, and allocating zero on the
-hot path — matches or beats native.
+scalar hot path (only modest amounts when reshaping data) — matches or beats native.
 
 Native becomes attractive when you (a) make expressions large enough that real
 compute dominates, or (b) **batch** many evaluations per interop call so the

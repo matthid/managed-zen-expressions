@@ -94,6 +94,35 @@ public static class Scenarios
             ContextJson = sbObj.ToString(),
         });
 
+        // --- allocating scenarios: expressions that RESHAPE data (build arrays,
+        // objects or strings on the hot path). These are the honest counterpoint
+        // to the scalar scenarios above: managed pure-eval is NOT zero-alloc here. ---
+        var nums = new StringBuilder();
+        for (int i = 0; i < 20; i++) { if (i > 0) nums.Append(','); nums.Append(i + 1); }
+        list.Add(new()
+        {
+            Name = "alloc-array",
+            Group = "allocating",
+            Expression = "map(numbers, # * # + offset)",
+            ContextJson = "{\"numbers\":[" + nums + "],\"offset\":1}",
+        });
+
+        list.Add(new()
+        {
+            Name = "alloc-object",
+            Group = "allocating",
+            Expression = "{ total: sum(prices), count: len(prices), avg: round(sum(prices) / len(prices), 2), max: max(prices) }",
+            ContextJson = "{\"prices\":[10,20,30,40,50]}",
+        });
+
+        list.Add(new()
+        {
+            Name = "alloc-string",
+            Group = "allocating",
+            Expression = "prefix + '-' + string(id) + '-' + upper(status)",
+            ContextJson = "{\"prefix\":\"ORD\",\"id\":4815,\"status\":\"pending\"}",
+        });
+
         return list.ToArray();
     }
 }

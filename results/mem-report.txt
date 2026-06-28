@@ -1,0 +1,49 @@
+
+============================================================
+  MEMORY REPORT  (bytes allocated per operation, N=20000)
+============================================================
+
+-- eval (JSON context, the realistic per-call path) --
+  GoRules.Zen native heap is opaque; only its managed-side bytes are shown.
+  scenario                managed B/op   native B/op     real B/opnote            
+  --------------------------------------------------------------------------------
+  simple-few pure                    0           145           145                
+  simple-few json (managed)           952         1,281         2,233                
+  simple-few json (GoRules)           780             -           780native opaque   
+  complex-few pure                   0           140           140                
+  complex-few json (managed)         1,080         1,344         2,424                
+  complex-few json (GoRules)         1,057             -         1,057native opaque   
+  simple-many pure                   0           148           148                
+  simple-many json (managed)        11,192         8,732        19,924                
+  simple-many json (GoRules)         2,224             -         2,224native opaque   
+  complex-many pure                  0           142           142                
+  complex-many json (managed)         5,184         5,962        11,146                
+  complex-many json (GoRules)         1,632             -         1,632native opaque   
+  alloc-array pure                 824           966         1,790                
+  alloc-array json (managed)         4,640         4,400         9,040                
+  alloc-array json (GoRules)         4,786             -         4,786native opaque   
+  alloc-object pure                552           833         1,385                
+  alloc-object json (managed)         1,760         2,477         4,237                
+  alloc-object json (GoRules)         1,999             -         1,999native opaque   
+  alloc-string pure                264           593           857                
+  alloc-string json (managed)           832         1,849         2,681                
+  alloc-string json (GoRules)           977             -           977native opaque   
+
+-- parse/compile (source text -> compiled) --
+  scenario                managed B/op   native B/op     real B/opnote            
+  --------------------------------------------------------------------------------
+  simple-few                     1,968         1,388         3,356                
+  complex-few                    5,808         4,790        10,598                
+  simple-many                   20,944        13,828        34,772                
+  complex-many                  25,888        18,630        44,518                
+  alloc-array                    1,976         1,243         3,219                
+  alloc-object                   8,000         6,398        14,398                
+  alloc-string                   4,248         3,342         7,590                
+
+-- interop boundary (no work, just the call) --
+  scenario                managed B/op   native B/op     real B/opnote            
+  --------------------------------------------------------------------------------
+  zen_add                            0             0             0                
+
+  native heap retained after 20000 evals (complex-many): 0 bytes (transient buffers should be freed back to ~0)
+

@@ -4,6 +4,10 @@
 GitHub renders <img src="*.svg"> inline, so SVG keeps the repo text-friendly and
 crisp at any size. Numbers are transcribed from results/bench-full.txt and the
 --mem report (AMD Ryzen 9 5900X, .NET 8.0.28, Ubuntu 24.04 container).
+
+Scenarios cover BOTH scalar-producing expressions (condition evaluation, where
+managed hits 0 alloc) AND allocating/reshaping expressions (map / object / string
+building, where it does not) — so the comparison is fair.
 """
 import math
 import os
@@ -11,15 +15,16 @@ import os
 OUT = os.path.join(os.path.dirname(__file__), "..", "docs", "charts")
 os.makedirs(OUT, exist_ok=True)
 
-# --- palette ---
-MANAGED = "#2ca02c"   # green
-NATIVE = "#1f77b4"    # blue
-GORULES = "#d62728"   # red
+MANAGED = "#2ca02c"
+NATIVE = "#1f77b4"
+GORULES = "#d62728"
+MANAGED_LIGHT = "#9cdb9c"
 GRID = "#dddddd"
 TEXT = "#222222"
 MUTED = "#666666"
 
-SCENARIOS = ["simple-few", "complex-few", "simple-many", "complex-many"]
+SCENARIOS = ["simple-few", "complex-few", "simple-many", "complex-many",
+             "alloc-string", "alloc-object", "alloc-array"]
 
 
 def fmt_ns(v):
@@ -37,8 +42,7 @@ def fmt_bytes(v):
 
 
 def grouped_bars(series, categories, title, note, fmt, fname,
-                 log=True, width=860, height=420, floor=None):
-    """series: [(name, color, [values...])]. categories: [str]."""
+                 log=True, width=980, height=430, floor=None):
     margin_l, margin_r, margin_t, margin_b = 64, 16, 56, 96
     plot_w = width - margin_l - margin_r
     plot_h = height - margin_t - margin_b
@@ -71,7 +75,6 @@ def grouped_bars(series, categories, title, note, fmt, fname,
     parts.append(f'<text x="{width/2:.0f}" y="26" text-anchor="middle" font-size="17" '
                  f'font-weight="600" fill="{TEXT}">{title}</text>')
 
-    # y gridlines (5 decades or 5 linear ticks)
     if log:
         ticks = []
         e = math.floor(lo)
@@ -88,7 +91,6 @@ def grouped_bars(series, categories, title, note, fmt, fname,
         parts.append(f'<text x="{margin_l-8}" y="{y+4:.1f}" text-anchor="end" font-size="11" '
                      f'fill="{MUTED}">{fmt(t)}</text>')
 
-    # bars + value labels + category labels
     for gi, cat in enumerate(categories):
         for si, (name, color, vals) in enumerate(series):
             v = vals[gi]
@@ -96,22 +98,19 @@ def grouped_bars(series, categories, title, note, fmt, fname,
             y = y_of(v)
             h = base_y - y
             if v <= 0:
-                # draw a tiny stub so the "0" bar is visible
                 y = base_y - 2; h = 2
             parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w*0.86:.1f}" height="{h:.1f}" '
                          f'fill="{color}" rx="1.5"/>')
             label = "0" if v <= 0 else fmt(v)
             parts.append(f'<text x="{x+bar_w*0.43:.1f}" y="{y-4:.1f}" text-anchor="middle" '
-                         f'font-size="9.5" fill="{TEXT}">{label}</text>')
+                         f'font-size="9" fill="{TEXT}">{label}</text>')
         cx = margin_l + gi * grp_w + grp_w / 2
-        parts.append(f'<text x="{cx:.1f}" y="{base_y+18:.1f}" text-anchor="middle" font-size="12" '
+        parts.append(f'<text x="{cx:.1f}" y="{base_y+18:.1f}" text-anchor="middle" font-size="11" '
                      f'fill="{TEXT}">{cat}</text>')
 
-    # axes
     parts.append(f'<line x1="{margin_l}" y1="{base_y}" x2="{margin_l+plot_w}" y2="{base_y}" '
                  f'stroke="{TEXT}" stroke-width="1.2"/>')
 
-    # legend
     lx = margin_l
     ly = height - 26
     for name, color, _ in series:
@@ -129,57 +128,57 @@ def grouped_bars(series, categories, title, note, fmt, fname,
     print("wrote", fname)
 
 
-# ---------------------------------------------------------------------------
-# Chart 1 — pure-eval throughput (compile once, evaluate many)
-# ---------------------------------------------------------------------------
+# ---- pure-eval throughput (ns) ----
 grouped_bars(
     series=[
-        ("Managed (pure)", MANAGED, [152.5, 308.8, 2412.1, 2167.3]),
-        ("Native manual (pure)", NATIVE, [469.7, 574.7, 2561.3, 2213.0]),
-        ("GoRules.Zen", GORULES, [3918.1, 6293.4, 62160.8, 67466.0]),
+        ("Managed (pure)", MANAGED, [147.5, 306.3, 2340.3, 2163.1, 305.8, 547.6, 1943.3]),
+        ("Native manual (pure)", NATIVE, [456.5, 557.6, 2478.2, 2182.9, 969.4, 1871.1, 5226.5]),
+        ("GoRules.Zen", GORULES, [3570.8, 6436.2, 59053.3, 67933.6, 4356.4, 9803.5, 25382.2]),
     ],
     categories=SCENARIOS,
     title="Evaluation throughput — compile-once / evaluate-many (pre-parsed context)",
-    note="log scale · lower is better",
-    fmt=fmt_ns,
-    fname="eval-pure.svg",
+    note="log scale · lower is better · left 4 = scalar, right 3 = allocating",
+    fmt=fmt_ns, fname="eval-pure.svg",
 )
 
-# ---------------------------------------------------------------------------
-# Chart 2 — JSON-eval throughput (parse context + eval, realistic per-call)
-# ---------------------------------------------------------------------------
+# ---- JSON-eval throughput (ns) ----
 grouped_bars(
     series=[
-        ("Managed (JSON)", MANAGED, [1095.7, 1611.8, 10874.9, 6265.1]),
-        ("Native manual (JSON)", NATIVE, [974.9, 1316.9, 10557.6, 5086.0]),
-        ("GoRules.Zen", GORULES, [4400.3, 6540.4, 68307.4, 73761.6]),
+        ("Managed (JSON)", MANAGED, [1074.3, 1622.6, 10485.4, 6252.3, 1074.2, 1536.8, 4670.1]),
+        ("Native manual (JSON)", NATIVE, [925.5, 1279.8, 10750.2, 5359.7, 1461.7, 2290.7, 6122.5]),
+        ("GoRules.Zen", GORULES, [4327.8, 6558.5, 71957.8, 71741.6, 5459.7, 27439.1, 18904.8]),
     ],
     categories=SCENARIOS,
     title="Evaluation throughput — JSON context per call (parse + eval)",
-    note="log scale · lower is better",
-    fmt=fmt_ns,
-    fname="eval-json.svg",
+    note="log scale · lower is better · left 4 = scalar, right 3 = allocating",
+    fmt=fmt_ns, fname="eval-json.svg",
 )
 
-# ---------------------------------------------------------------------------
-# Chart 3 — memory per op: managed GC vs real (incl. native heap)
-# ---------------------------------------------------------------------------
+# ---- memory: pure-eval allocation per op (managed GC vs native real heap) ----
 grouped_bars(
     series=[
-        ("Managed GC (JSON path)", "#7bc47f", [952, 1080, 11192, 5184]),
-        ("Native heap, real (JSON)", NATIVE, [1281, 1344, 8732, 5962]),
-        ("Managed (pure path)", MANAGED, [0, 0, 0, 0]),
+        ("Managed GC", MANAGED, [0, 0, 0, 0, 264, 552, 824]),
+        ("Native heap (real)", NATIVE, [145, 140, 148, 142, 593, 833, 966]),
     ],
     categories=SCENARIOS,
-    title="Memory per op — the native-heap blind spot (BenchmarkDotNet only sees the GC bars)",
-    note="log scale · .NET metrics miss native heap; instrumented allocator reveals it",
-    fmt=fmt_bytes, floor=1,
-    fname="memory.svg",
+    title="Pure-eval memory per op — managed is 0 only for scalar expressions",
+    note="log scale · allocating expressions (right 3) do allocate on the managed hot path",
+    fmt=fmt_bytes, floor=1, fname="memory-pure.svg",
 )
 
-# ---------------------------------------------------------------------------
-# Chart 4 — isolated interop boundary cost
-# ---------------------------------------------------------------------------
+# ---- memory: JSON-eval — the native-heap blind spot ----
+grouped_bars(
+    series=[
+        ("Managed GC", MANAGED, [952, 1080, 11192, 5184, 832, 1760, 4640]),
+        ("Native heap (real)", NATIVE, [1281, 1344, 8732, 5962, 1849, 2477, 4400]),
+    ],
+    categories=SCENARIOS,
+    title="JSON-eval memory per op — .NET metrics see only the green bar; native heap is hidden",
+    note="log scale · BenchmarkDotNet's 'Allocated' misses the blue native heap entirely",
+    fmt=fmt_bytes, floor=1, fname="memory-json.svg",
+)
+
+# ---- isolated interop overhead ----
 grouped_bars(
     series=[
         ("Managed inline add", MANAGED, [0.0]),
@@ -188,8 +187,7 @@ grouped_bars(
     categories=["a + b"],
     title="Isolated P/Invoke overhead — the boundary itself is cheap (~7 ns)",
     note="linear scale · this is NOT what slows the native engines down",
-    fmt=fmt_ns, log=False, floor=0,
-    fname="interop.svg", width=560, height=320,
+    fmt=fmt_ns, log=False, floor=0, fname="interop.svg", width=560, height=320,
 )
 
 print("done")
