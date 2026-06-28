@@ -55,8 +55,9 @@ realistic size do not reach it.
 
 ![Isolated P/Invoke overhead](docs/charts/interop.svg)
 
-*(Regenerate with `python3 scripts/generate_charts.py`; numbers transcribed from
-[`results/bench-full.txt`](results/bench-full.txt). AMD Ryzen 9 5900X, .NET 8.0.28.)*
+*(Regenerate with `python3 scripts/generate_charts.py`; numbers transcribed from a
+representative run in [`results/bench-full.txt`](results/bench-full.txt) — figures
+vary a few % run-to-run. AMD Ryzen 9 5900X, .NET 8.0.28.)*
 
 ## Repository layout
 
@@ -80,8 +81,12 @@ docker build -t zen-dev -f docker/Dockerfile .
 docker run --rm -v "$PWD":/work -w /work zen-dev dotnet build  Zen.sln -c Release
 docker run --rm -v "$PWD":/work -w /work zen-dev dotnet test   src/Zen.Tests -c Release
 docker run --rm -v "$PWD":/work -w /work zen-dev dotnet run    -c Release --project src/Zen.Benchmarks             # throughput
-docker run --rm -v "$PWD":/work -w /work zen-dev dotnet run    -c Release --project src/Zen.Benchmarks -- --mem    # memory
-docker run --rm -v "$PWD":/work -w /work zen-dev dotnet run    -c Release --project src/Zen.Benchmarks -- --probe  # 3-engine sanity
+docker run --rm -v "$PWD":/work -w /work zen-dev dotnet run    -c Release --project src/Zen.Benchmarks -- --mem        # memory (incl. native heap)
+docker run --rm -v "$PWD":/work -w /work zen-dev dotnet run    -c Release --project src/Zen.Benchmarks -- --overhead   # cold-start + footprint
+docker run --rm -v "$PWD":/work -w /work zen-dev dotnet run    -c Release --project src/Zen.Benchmarks -- --probe     # 3-engine sanity
+
+# strict compat (fail on unexpected GoRules divergences; default is lenient):
+docker run --rm -e ZEN_STRICT_COMPAT=1 -v "$PWD":/work -w /work zen-dev dotnet test src/Zen.Tests -c Release
 ```
 
 > The official `GoRules.Zen` native lib (`libzen_ffi.so`) requires **GLIBC 2.39**,
@@ -193,6 +198,56 @@ Native becomes attractive when you (a) make expressions large enough that real
 compute dominates, or (b) **batch** many evaluations per interop call so the
 marshalling is amortized. Single-expression evaluation calls of realistic size do
 not clear that bar — which is the whole point of this comparison.
+
+## Resource limits (deterministic compute/memory budgets)
+
+The managed engine has a count-based resource budget (`ZenLimits`) so an
+evaluation behaves **identically regardless of CPU load** — never a wall-clock
+timeout that fails a normal expression on a busy machine.
+
+```csharp
+var expr = ZenExpression.Compile("sum(map(big, # + 1))");
+var result = expr.Evaluate(context, ZenLimits.Default);   // enforces the budget
+// throws ZenLimitException if a budget is exceeded
+```
+
+| Budget | Counts | Default | Strict |
+| --- | --- | --- | --- |
+| `MaxSteps` | AST node visits (compute) | 1,000,000 | 10,000 |
+| `MaxAllocations` | structural allocs (arrays/objects/strings) | 1,000,000 | 10,000 |
+| `MaxBytes` | estimated allocated bytes | 256 MB | 4 MB |
+| `MaxSourceLength` | source text (parse guard) | 1 MB | 64 KB |
+| `MaxParseDepth` | parser recursion depth | 1,000 | 200 |
+
+- **Opt-in for eval:** `Evaluate(ctx)` enforces nothing (the fast path the
+  benchmarks measure); pass a `ZenLimits` to sandbox untrusted input. Parse guards
+  are on by default (cheap). When off, the guards add **no measurable overhead**.
+- **DoS-safe:** the language has no user-defined recursion, so there are no
+  infinite loops; `map`/`filter`/`some`/`all` are bounded by array length, and
+  every node visit and structural allocation is charged. A hostile expression or
+  huge input array aborts deterministically instead of hanging or OOMing.
+- Aborts throw `ZenLimitException`. Covered by `LimitTests` (7 cases, incl.
+  deterministic-repeat and hostile-input).
+
+## Cold-start & footprint overhead
+
+The per-op benchmarks above measure the steady-state hot path. The
+`--overhead` report measures the fixed cost you pay once:
+
+| | Managed | Native (manual) | GoRules (official) |
+| --- | ---: | ---: | ---: |
+| Binary footprint | 35 KB (`Zen.Managed.dll`) | +548 KB (`libzen_native.so`) | **~19 MB** (`libzen_ffi.so` 12.5 MB + `libcapstone.so` 6.7 MB) |
+| Native `dlopen` | n/a (pure managed) | ~0.1 ms | (included below) |
+| Cold first call | ~13 ms (JIT) | ~0.4 ms | **~55 ms** (dlopen 12 MB + UniFFI init + thread-pool) |
+| Warm eval (simple) | ~145 ns | ~456 ns | ~3.6 µs |
+
+Takeaways:
+- **Pure managed has the smallest footprint** (35 KB, no native deps) and no
+  `dlopen`; the official engine ships ~19 MB of native code and pays a ~55 ms
+  cold-start on the first call.
+- The manual native engine is a useful middle ground: 548 KB, sub-ms cold, and
+  fast warm — but it still crosses the interop boundary per call.
+- Cold numbers are one-shot per fresh process (min of 5 runs); warm is steady-state.
 
 ## Language subset
 
