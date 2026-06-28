@@ -132,6 +132,26 @@ Takeaways:
   percent on scalars; on allocating expressions managed pulls ahead because native
   must also marshal the (now non-scalar) result back across the boundary.
 
+#### Fairness: how each engine ingests context
+
+The two paths measure two realistic regimes, and the cost each engine pays is a
+real capability difference, not a measurement artifact:
+
+- **JSON-string path (`*_Json`)** — all three start from the *same raw JSON string*
+  and must parse it. Managed parses once (System.Text.Json → `ZenValue`); the manual
+  native binding takes raw bytes and parses once (serde); the **official GoRules
+  binding takes a context *object* and `JsonSerializer.Serialize`s it on every call**
+  (confirmed in its source) — so from a JSON string it pays parse + serialize + native
+  parse. Same input; the difference is each engine's real API cost.
+- **Pre-parsed path (`*_Pure`)** — managed and manual-native can **cache a parsed
+  context** (a `ZenValue` / a native context handle) and evaluate with **no per-call
+  JSON**. The official GoRules binding **cannot** — it serializes the context object
+  every call (no reusable-context API), so `GoRules_Pure` still pays serialization.
+
+This is the whole point of the comparison: a managed engine can hold the context as
+a **live in-process object** and skip serialization entirely, which native engines
+structurally cannot — they must serialize any object to cross the boundary.
+
 ### Parse / compile (lower is better)
 
 ![Parse / compile throughput (source text → compiled)](docs/charts/parse.svg)
