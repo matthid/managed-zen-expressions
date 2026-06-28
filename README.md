@@ -6,6 +6,15 @@ evaluated **three ways**, benchmarked to answer one question:
 > **Does the raw speed of unmanaged (Rust) code offset the cost of .NET interop
 > against a genuinely performant pure-managed (C#) implementation?**
 
+The README is in two parts:
+
+- **[Part 1 — Initial implementation](#part-1--initial-implementation-managed-vs-native-benchmarks):**
+  the original managed-vs-native benchmark study (throughput, parse, interop, memory, charts, analysis).
+- **[Part 2 — Variants & features](#part-2--variants--features):** everything added
+  on top — the three engine variants, deterministic resource limits (+ an
+  enforcement-overhead optimization), cold-start/footprint overhead, strict-compat
+  mode, and test coverage.
+
 The three engines, all evaluating the *same* Zen subset:
 
 | Engine | What it is |
@@ -43,22 +52,6 @@ to amortize the fixed marshalling cost — i.e. either enormous expressions or
 many evaluations batched inside a single native call. Single-expression calls of
 realistic size do not reach it.
 
-## Results at a glance
-
-![Evaluation throughput — compile-once / evaluate-many](docs/charts/eval-pure.svg)
-
-![Evaluation throughput — JSON context per call](docs/charts/eval-json.svg)
-
-![Pure-eval memory — managed is 0 only for scalar expressions](docs/charts/memory-pure.svg)
-
-![JSON-eval memory — the native-heap blind spot](docs/charts/memory-json.svg)
-
-![Isolated P/Invoke overhead](docs/charts/interop.svg)
-
-*(Regenerate with `python3 scripts/generate_charts.py`; numbers transcribed from a
-representative run in [`results/bench-full.txt`](results/bench-full.txt) — figures
-vary a few % run-to-run. AMD Ryzen 9 5900X, .NET 8.0.28.)*
-
 ## Repository layout
 
 ```
@@ -66,8 +59,8 @@ src/Zen.Managed/      Pure C# engine (the library)
 native/zen-native/    Rust cdylib (manual native engine + counting allocator)
 src/Zen.Interop/      P/Invoke wrapper over libzen_native
 src/Zen.Gorules/      Adapter over the official GoRules.Zen NuGet package
-src/Zen.Tests/        xUnit parity (managed↔native 208, managed↔GoRules 69) — all green
-src/Zen.Benchmarks/   BenchmarkDotNet suite + standalone --mem / --probe reports
+src/Zen.Tests/        xUnit parity + limits (301 tests) — all green
+src/Zen.Benchmarks/   BenchmarkDotNet suite + standalone --mem / --overhead / --probe reports
 docker/Dockerfile     Multi-stage build (Rust + .NET 8, Ubuntu 24.04 noble for glibc 2.39)
 Zen.sln
 ```
@@ -93,7 +86,31 @@ docker run --rm -e ZEN_STRICT_COMPAT=1 -v "$PWD":/work -w /work zen-dev dotnet t
 > so the image is Ubuntu 24.04 *noble* (the default `sdk:8.0` Debian image only
 > has 2.36 and the lib fails to load).
 
-## Results
+---
+
+# Part 1 — Initial implementation: managed vs native benchmarks
+
+The original study: the same Zen subset evaluated three ways, measured on
+throughput, parse, interop and memory across simple/complex × few/many
+parameters, plus allocating (data-reshaping) expressions for fairness.
+
+## Results at a glance
+
+![Evaluation throughput — compile-once / evaluate-many](docs/charts/eval-pure.svg)
+
+![Evaluation throughput — JSON context per call](docs/charts/eval-json.svg)
+
+![Pure-eval memory — managed is 0 only for scalar expressions](docs/charts/memory-pure.svg)
+
+![JSON-eval memory — the native-heap blind spot](docs/charts/memory-json.svg)
+
+![Isolated P/Invoke overhead](docs/charts/interop.svg)
+
+*(Regenerate with `python3 scripts/generate_charts.py`; numbers transcribed from a
+representative run in [`results/bench-full.txt`](results/bench-full.txt) — figures
+vary a few % run-to-run. AMD Ryzen 9 5900X, .NET 8.0.28.)*
+
+## Detailed results
 
 Hardware: AMD Ryzen 9 5900X, .NET 8.0.28, Linux container. Full output:
 [`results/bench-full.txt`](results/bench-full.txt). 7 scenarios: the first four are
@@ -199,6 +216,29 @@ compute dominates, or (b) **batch** many evaluations per interop call so the
 marshalling is amortized. Single-expression evaluation calls of realistic size do
 not clear that bar — which is the whole point of this comparison.
 
+---
+
+# Part 2 — Variants & features
+
+Everything added on top of the initial benchmark study.
+
+## Engine variants
+
+The comparison runs the **same Zen subset** through three engines (see the table
+at the top):
+
+- **`Zen.Managed`** — pure C#; the library under test. Zero native deps, zero
+  GC alloc on the scalar hot path.
+- **`Zen.Native` + `Zen.Interop`** — a manual Rust `cdylib` + P/Invoke wrapper.
+  Includes a **counting global allocator** so its native heap is measurable (the
+  thing .NET metrics cannot see). A clean probe of "native eval speed + minimal
+  interop".
+- **`GoRules.Zen`** (official NuGet) — the real-world "unmanaged engine via
+  interop" path (native Rust via UniFFI). Shipped as-is, unmodified.
+
+All three are exercised by the same `Scenarios` matrix (simple/complex × few/many
++ allocating) and the same parity battery.
+
 ## Resource limits (deterministic compute/memory budgets)
 
 The managed engine has a count-based resource budget (`ZenLimits`) so an
@@ -213,7 +253,7 @@ var result = expr.Evaluate(context, ZenLimits.Default);   // enforces the budget
 
 | Budget | Counts | Default | Strict |
 | --- | --- | --- | --- |
-| `MaxSteps` | AST node visits (compute) | 1,000,000 | 10,000 |
+| `MaxSteps` | array elements processed by iterating ops (`sum`/`avg`/`min`/`max`/`map`/`filter`/`some`/`all`/`in`) | 1,000,000 | 1,000 |
 | `MaxAllocations` | structural allocs (arrays/objects/strings) | 1,000,000 | 10,000 |
 | `MaxBytes` | estimated allocated bytes | 256 MB | 4 MB |
 | `MaxSourceLength` | source text (parse guard) | 1 MB | 64 KB |
@@ -223,10 +263,9 @@ var result = expr.Evaluate(context, ZenLimits.Default);   // enforces the budget
   benchmarks measure); pass a `ZenLimits` to sandbox untrusted input. Parse guards
   are on by default (cheap). When off, the guards add **no measurable overhead**.
 - **Near-zero enforcement overhead:** `MaxSteps` is charged **O(1) up-front** at
-  array-iterating ops (`sum`/`avg`/`min`/`max`/`map`/`filter`/`some`/`all`/`in`),
-  not per AST node; static work is bounded by `MaxSourceLength` at parse time. So
-  non-iterative expressions pay nothing to enforce limits. Measured (`LimitsBench`,
-  `Evaluate` without limits vs with Default/Strict):
+  array-iterating ops, not per AST node; static work is bounded by
+  `MaxSourceLength` at parse time. So non-iterative expressions pay nothing to
+  enforce limits. Measured (`LimitsBench`, `Evaluate` off vs on):
 
   | Scenario | Off | On (Default) | overhead |
   | --- | ---: | ---: | ---: |
@@ -239,17 +278,17 @@ var result = expr.Evaluate(context, ZenLimits.Default);   // enforces the budget
   | alloc-array  | 1 937 ns | 1 931 ns | ~0% |
 
   (An earlier per-node counter charged 5–12%; the O(1) iteration design brought it
-  to within noise.)
+  to within noise.) Limits are **managed-only** — the native path is just a lib
+  call, and you cannot budget someone else's compiled `.so` from the outside.
 - **DoS-safe:** the language has no user-defined recursion, so there are no
   infinite loops; iterating operations are bounded by `MaxSteps`, allocations by
   `MaxAllocations`/`MaxBytes`. A hostile expression or huge input array aborts
   deterministically instead of hanging or OOMing.
-- Aborts throw `ZenLimitException`. Covered by `LimitTests` (7 cases, incl.
-  deterministic-repeat and hostile-input).
+- Aborts throw `ZenLimitException`. Covered by `LimitTests`.
 
 ## Cold-start & footprint overhead
 
-The per-op benchmarks above measure the steady-state hot path. The
+The per-op benchmarks in Part 1 measure the steady-state hot path. The
 `--overhead` report measures the fixed cost you pay once:
 
 | | Managed | Native (manual) | GoRules (official) |
@@ -266,6 +305,32 @@ Takeaways:
 - The manual native engine is a useful middle ground: 548 KB, sub-ms cold, and
   fast warm — but it still crosses the interop boundary per call.
 - Cold numbers are one-shot per fresh process (min of 5 runs); warm is steady-state.
+
+## Strict-compat mode
+
+`Zen.Tests/GorulesParityTests` compares our engine against the **official GoRules**
+reference on the full case battery. Compat is controlled by `ZEN_STRICT_COMPAT`:
+
+- **Off (default):** if GoRules rejects an expression our engine accepts, the case
+  is soft-skipped — so extending the language beyond the reference does not fail
+  the suite.
+- **On (`ZEN_STRICT_COMPAT=1`):** a GoRules rejection **fails** unless the case is
+  on the `KnownSupersetCases` allowlist. This catches *unexpected* regressions on
+  the shared subset while the language grows.
+
+Strict mode surfaced 6 features our engine extends beyond GoRules (now
+allowlisted): `concat()`, negative indexing (`items[-1]`), string relational
+comparison (`'a' < 'b'`), `replace()`, `substring()`, and `'needle' in 'haystack'`.
+
+## Test coverage
+
+301 tests, green in both default and strict modes:
+
+- **`ParityTests`** — managed ↔ manual-native agree on the full battery
+  (simple/complex × few/many + allocating), plus the managed pure vs JSON paths.
+- **`GorulesParityTests`** — managed ↔ official GoRules reference (see strict mode above).
+- **`LimitTests`** — step/allocation/byte/parse-depth/parse-length budgets abort
+  deterministically, including a hostile-input case and a deterministic-repeat check.
 
 ## Language subset
 
