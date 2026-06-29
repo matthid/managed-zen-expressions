@@ -2,10 +2,11 @@ using System.Text.Json;
 using Zen.Gorules;
 using Zen.Interop;
 using Zen.Managed;
+using Zen.ZenEngine;
 
 namespace Zen.Benchmarks;
 
-/// <summary>Quick functional sanity check across all three engines.</summary>
+/// <summary>Quick functional sanity check across all four engines.</summary>
 public static class Probe
 {
     public static void Run()
@@ -33,7 +34,7 @@ public static class Probe
 
         foreach (var (expr, ctx) in cases)
         {
-            string managed, manualNative, gorules;
+            string managed, manualNative, gorules, zenEngine;
             try { managed = ZenJson.Serialize(ZenExpression.Compile(expr).Evaluate(ctx)); }
             catch (Exception ex) { managed = "THROW: " + ex.Message.Split('\n')[0]; }
             try { manualNative = ZenJson.Serialize(NativeZenExpression.Compile(expr).Evaluate(ctx)); }
@@ -45,11 +46,18 @@ public static class Probe
                 gorules = ZenJson.Serialize(gr.Evaluate(doc.RootElement));
             }
             catch (Exception ex) { gorules = "THROW: " + ex.GetType().Name + ": " + ex.Message.Split('\n')[0]; }
+            try
+            {
+                using var ze = ZenEngineExpression.Compile(expr).UseContext(ctx);
+                zenEngine = ZenJson.Serialize(ze.Evaluate());
+            }
+            catch (Exception ex) { zenEngine = "THROW: " + ex.GetType().Name + ": " + ex.Message.Split('\n')[0]; }
 
             Console.WriteLine($"expr: {expr}");
-            Console.WriteLine($"  managed      : {managed}");
-            Console.WriteLine($"  manual native: {manualNative}");
-            Console.WriteLine($"  GoRules.Zen  : {gorules}");
+            Console.WriteLine($"  managed           : {managed}");
+            Console.WriteLine($"  manual native     : {manualNative}");
+            Console.WriteLine($"  GoRules.Zen       : {gorules}");
+            Console.WriteLine($"  GoRules.ZenEngine : {zenEngine}");
             Console.WriteLine();
         }
     }

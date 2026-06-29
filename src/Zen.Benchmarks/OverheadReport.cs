@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using Zen.Gorules;
 using Zen.Interop;
 using Zen.Managed;
+using Zen.ZenEngine;
 
 namespace Zen.Benchmarks;
 
@@ -49,6 +50,10 @@ public static class OverheadReport
         Console.WriteLine($"  GoRules  cold first call*          : {gCompileMs + gEvalMs,8:N2} ms");
         Console.WriteLine("    * includes libzen_ffi dlopen + UniFFI init + JIT + thread-pool spawn");
 
+        var (zeCompileMs, zeEvalMs) = ColdZenEngine();
+        Console.WriteLine($"  ZenEngine cold first call*         : {zeCompileMs + zeEvalMs,8:N2} ms");
+        Console.WriteLine("    * includes libzen_uniffi dlopen + JIT + first compiled-eval (synchronous)");
+
         Console.WriteLine();
         Console.WriteLine("-- warm steady-state (median of 1000 evals; for context vs the cold figures) --");
         var me = ZenExpression.Compile(Expr);
@@ -60,6 +65,10 @@ public static class OverheadReport
         }
         var ge = GorulesZenExpression.Compile(Expr);
         Console.WriteLine($"  GoRules  warm eval : {MedianUs(() => ge.Evaluate(CtxJson), 200),8:N1} µs");
+        using (var zee = ZenEngineExpression.Compile(Expr).UseContext(CtxJson))
+        {
+            Console.WriteLine($"  ZenEngine warm eval : {MedianNs(() => zee.Evaluate(), 1000),8:N0} ns");
+        }
         Console.WriteLine();
     }
 
@@ -73,6 +82,8 @@ public static class OverheadReport
         Row("GoRules.Zen.dll  (official managed binding)", Size("GoRules.Zen.dll"));
         Row("libzen_ffi.so    (official native engine)", FindSize("libzen_ffi.so"));
         Row("libcapstone.so   (official native dep)", FindSize("libcapstone.so"));
+        Row("GoRules.ZenEngine.dll (2nd official binding)", Size("GoRules.ZenEngine.dll"));
+        Row("libzen_uniffi.so (ZenEngine native engine)", FindSize("libzen_uniffi.so"));
     }
 
     // ---- cold measurements (first touch) ----
@@ -121,6 +132,18 @@ public static class OverheadReport
         double compile = sw.ElapsedTicks * 1000.0 / Stopwatch.Frequency;
         sw.Restart();
         expr.Evaluate(CtxJson);
+        sw.Stop();
+        return (compile, sw.ElapsedTicks * 1000.0 / Stopwatch.Frequency);
+    }
+
+    private static (double compileMs, double evalMs) ColdZenEngine()
+    {
+        var sw = Stopwatch.StartNew();
+        using var expr = ZenEngineExpression.Compile(Expr).UseContext(CtxJson);
+        sw.Stop();
+        double compile = sw.ElapsedTicks * 1000.0 / Stopwatch.Frequency;
+        sw.Restart();
+        expr.Evaluate();
         sw.Stop();
         return (compile, sw.ElapsedTicks * 1000.0 / Stopwatch.Frequency);
     }

@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using Zen.Gorules;
 using Zen.Interop;
 using Zen.Managed;
+using Zen.ZenEngine;
 
 namespace Zen.Benchmarks;
 
@@ -33,7 +34,11 @@ public class EvalBench
         s.GorulesExpr = GorulesZenExpression.Compile(s.Expression);
         s.GorulesDoc = System.Text.Json.JsonDocument.Parse(s.ContextJson);
         s.GorulesCtx = s.GorulesDoc.RootElement.Clone();
+        s.ZenEngineExpr = ZenEngineExpression.Compile(s.Expression).UseContext(s.ContextJson);
     }
+
+    [GlobalCleanup]
+    public void Cleanup() => s.ZenEngineExpr?.Dispose();
 
     [Benchmark(Baseline = true)]
     public ZenValue Managed_Pure() => s.ManagedExpr!.Evaluate(s.ManagedCtx);
@@ -45,6 +50,9 @@ public class EvalBench
     public ZenValue Gorules_Pure() => s.GorulesExpr!.Evaluate(s.GorulesCtx);
 
     [Benchmark]
+    public ZenValue ZenEngine_Pure() => s.ZenEngineExpr!.Evaluate();
+
+    [Benchmark]
     public ZenValue Managed_Json() => s.ManagedExpr!.Evaluate(s.ContextJson);
 
     [Benchmark]
@@ -52,6 +60,9 @@ public class EvalBench
 
     [Benchmark]
     public ZenValue Gorules_Json() => s.GorulesExpr!.Evaluate(s.ContextJson);
+
+    [Benchmark]
+    public ZenValue ZenEngine_Json() => s.ZenEngineExpr!.Evaluate(s.ContextJson);
 }
 
 /// <summary>
@@ -153,7 +164,11 @@ public class HeavyBench
         s.GorulesExpr = GorulesZenExpression.Compile(s.Expression);
         s.GorulesDoc = System.Text.Json.JsonDocument.Parse(s.ContextJson);
         s.GorulesCtx = s.GorulesDoc.RootElement.Clone();
+        s.ZenEngineExpr = ZenEngineExpression.Compile(s.Expression).UseContext(s.ContextJson);
     }
+
+    [GlobalCleanup]
+    public void Cleanup() => s.ZenEngineExpr?.Dispose();
 
     [Benchmark(Baseline = true)]
     public ZenValue Managed_Pure() => s.ManagedExpr!.Evaluate(s.ManagedCtx);
@@ -165,6 +180,9 @@ public class HeavyBench
     public ZenValue Gorules_Pure() => s.GorulesExpr!.Evaluate(s.GorulesCtx);
 
     [Benchmark]
+    public ZenValue ZenEngine_Pure() => s.ZenEngineExpr!.Evaluate();
+
+    [Benchmark]
     public ZenValue Managed_Json() => s.ManagedExpr!.Evaluate(s.ContextJson);
 
     [Benchmark]
@@ -172,4 +190,7 @@ public class HeavyBench
 
     [Benchmark]
     public ZenValue Gorules_Json() => s.GorulesExpr!.Evaluate(s.ContextJson);
+
+    [Benchmark]
+    public ZenValue ZenEngine_Json() => s.ZenEngineExpr!.Evaluate(s.ContextJson);
 }

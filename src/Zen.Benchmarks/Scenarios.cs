@@ -3,6 +3,7 @@ using System.Text.Json;
 using Zen.Gorules;
 using Zen.Interop;
 using Zen.Managed;
+using Zen.ZenEngine;
 
 namespace Zen.Benchmarks;
 
@@ -25,6 +26,7 @@ public sealed class Scenario
     public GorulesZenExpression? GorulesExpr { get; set; }
     public JsonDocument? GorulesDoc { get; set; }
     public JsonElement GorulesCtx { get; set; }
+    public ZenEngineExpression? ZenEngineExpr { get; set; }
 
     public override string ToString() => Name;
 }

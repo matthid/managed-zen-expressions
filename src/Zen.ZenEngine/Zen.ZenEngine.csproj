@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>Zen.ZenEngine</AssemblyName>
+    <RootNamespace>Zen.ZenEngine</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The official GoRules.ZenEngine binding: the same Rust core as GoRules.Zen,
+         but a newer UniFFI binding with a synchronous, precompiled-expression API
+         and a raw-bytes JsonBuffer context. Its native lib (libzen_uniffi.so) is
+         bundled under runtimes/ in this package — no separate native ref needed. -->
+    <PackageReference Include="GoRules.ZenEngine" Version="0.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Zen.Managed\Zen.Managed.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -17,6 +17,7 @@
     <ProjectReference Include="..\Zen.Managed\Zen.Managed.csproj" />
     <ProjectReference Include="..\Zen.Interop\Zen.Interop.csproj" />
     <ProjectReference Include="..\Zen.Gorules\Zen.Gorules.csproj" />
+    <ProjectReference Include="..\Zen.ZenEngine\Zen.ZenEngine.csproj" />
   </ItemGroup>
 
 </Project>

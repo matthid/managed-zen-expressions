@@ -1,53 +1,65 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="980" height="430" viewBox="0 0 980 430" font-family="Segoe UI,Helvetica,Arial,sans-serif">
 <rect width="980" height="430" fill="#ffffff"/>
 <text x="490" y="26" text-anchor="middle" font-size="17" font-weight="600" fill="#222222">Heavy load — JSON per call: native leads when allocation stays native + scalar returns</text>
-<line x1="64" y1="439.0" x2="964" y2="439.0" stroke="#dddddd" stroke-width="1"/>
-<text x="56" y="443.0" text-anchor="end" font-size="11" fill="#666666">10.0 µs</text>
-<line x1="64" y1="212.1" x2="964" y2="212.1" stroke="#dddddd" stroke-width="1"/>
-<text x="56" y="216.1" text-anchor="end" font-size="11" fill="#666666">100.0 µs</text>
-<line x1="64" y1="-14.8" x2="964" y2="-14.8" stroke="#dddddd" stroke-width="1"/>
-<text x="56" y="-10.8" text-anchor="end" font-size="11" fill="#666666">1.0 ms</text>
-<rect x="80.5" y="261.0" width="33.5" height="73.0" fill="#2ca02c" rx="1.5"/>
-<text x="97.3" y="257.0" text-anchor="middle" font-size="9" fill="#222222">60.9 µs</text>
-<rect x="119.5" y="334.0" width="33.5" height="0.0" fill="#1f77b4" rx="1.5"/>
-<text x="136.3" y="330.0" text-anchor="middle" font-size="9" fill="#222222">29.0 µs</text>
-<rect x="158.5" y="142.2" width="33.5" height="191.8" fill="#d62728" rx="1.5"/>
-<text x="175.3" y="138.2" text-anchor="middle" font-size="9" fill="#222222">203.1 µs</text>
+<line x1="64" y1="424.2" x2="964" y2="424.2" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="428.2" text-anchor="end" font-size="11" fill="#666666">10.0 µs</text>
+<line x1="64" y1="199.3" x2="964" y2="199.3" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="203.3" text-anchor="end" font-size="11" fill="#666666">100.0 µs</text>
+<line x1="64" y1="-25.5" x2="964" y2="-25.5" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="-21.5" text-anchor="end" font-size="11" fill="#666666">1.0 ms</text>
+<rect x="80.5" y="261.1" width="25.2" height="72.9" fill="#2ca02c" rx="1.5"/>
+<text x="93.1" y="257.1" text-anchor="middle" font-size="9" fill="#222222">53.1 µs</text>
+<rect x="109.8" y="334.0" width="25.2" height="0.0" fill="#1f77b4" rx="1.5"/>
+<text x="122.3" y="330.0" text-anchor="middle" font-size="9" fill="#222222">25.2 µs</text>
+<rect x="139.0" y="140.1" width="25.2" height="193.9" fill="#d62728" rx="1.5"/>
+<text x="151.6" y="136.1" text-anchor="middle" font-size="9" fill="#222222">183.4 µs</text>
+<rect x="168.2" y="264.5" width="25.2" height="69.5" fill="#ff7f0e" rx="1.5"/>
+<text x="180.8" y="260.5" text-anchor="middle" font-size="9" fill="#222222">51.3 µs</text>
 <text x="139.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">sum-1k</text>
-<rect x="230.5" y="187.2" width="33.5" height="146.8" fill="#2ca02c" rx="1.5"/>
-<text x="247.3" y="183.2" text-anchor="middle" font-size="9" fill="#222222">128.6 µs</text>
-<rect x="269.5" y="212.0" width="33.5" height="122.0" fill="#1f77b4" rx="1.5"/>
-<text x="286.3" y="208.0" text-anchor="middle" font-size="9" fill="#222222">100.0 µs</text>
-<rect x="308.5" y="108.9" width="33.5" height="225.1" fill="#d62728" rx="1.5"/>
-<text x="325.3" y="104.9" text-anchor="middle" font-size="9" fill="#222222">284.9 µs</text>
+<rect x="230.5" y="180.6" width="25.2" height="153.4" fill="#2ca02c" rx="1.5"/>
+<text x="243.1" y="176.6" text-anchor="middle" font-size="9" fill="#222222">121.2 µs</text>
+<rect x="259.8" y="205.8" width="25.2" height="128.2" fill="#1f77b4" rx="1.5"/>
+<text x="272.3" y="201.8" text-anchor="middle" font-size="9" fill="#222222">93.6 µs</text>
+<rect x="289.0" y="101.1" width="25.2" height="232.9" fill="#d62728" rx="1.5"/>
+<text x="301.6" y="97.1" text-anchor="middle" font-size="9" fill="#222222">273.5 µs</text>
+<rect x="318.2" y="179.0" width="25.2" height="155.0" fill="#ff7f0e" rx="1.5"/>
+<text x="330.8" y="175.0" text-anchor="middle" font-size="9" fill="#222222">123.2 µs</text>
 <text x="289.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">sum-map-1k</text>
-<rect x="380.5" y="317.8" width="33.5" height="16.2" fill="#2ca02c" rx="1.5"/>
-<text x="397.3" y="313.8" text-anchor="middle" font-size="9" fill="#222222">34.2 µs</text>
-<rect x="419.5" y="256.5" width="33.5" height="77.5" fill="#1f77b4" rx="1.5"/>
-<text x="436.3" y="252.5" text-anchor="middle" font-size="9" fill="#222222">63.7 µs</text>
-<rect x="458.5" y="168.3" width="33.5" height="165.7" fill="#d62728" rx="1.5"/>
-<text x="475.3" y="164.3" text-anchor="middle" font-size="9" fill="#222222">155.9 µs</text>
+<rect x="380.5" y="306.6" width="25.2" height="27.4" fill="#2ca02c" rx="1.5"/>
+<text x="393.1" y="302.6" text-anchor="middle" font-size="9" fill="#222222">33.3 µs</text>
+<rect x="409.8" y="254.7" width="25.2" height="79.3" fill="#1f77b4" rx="1.5"/>
+<text x="422.3" y="250.7" text-anchor="middle" font-size="9" fill="#222222">56.7 µs</text>
+<rect x="439.0" y="165.3" width="25.2" height="168.7" fill="#d62728" rx="1.5"/>
+<text x="451.6" y="161.3" text-anchor="middle" font-size="9" fill="#222222">141.7 µs</text>
+<rect x="468.2" y="307.9" width="25.2" height="26.1" fill="#ff7f0e" rx="1.5"/>
+<text x="480.8" y="303.9" text-anchor="middle" font-size="9" fill="#222222">32.9 µs</text>
 <text x="439.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">arith-200</text>
-<rect x="530.5" y="193.0" width="33.5" height="141.0" fill="#2ca02c" rx="1.5"/>
-<text x="547.3" y="189.0" text-anchor="middle" font-size="9" fill="#222222">121.3 µs</text>
-<rect x="569.5" y="183.5" width="33.5" height="150.5" fill="#1f77b4" rx="1.5"/>
-<text x="586.3" y="179.5" text-anchor="middle" font-size="9" fill="#222222">133.6 µs</text>
-<rect x="608.5" y="83.0" width="33.5" height="251.0" fill="#d62728" rx="1.5"/>
-<text x="625.3" y="79.0" text-anchor="middle" font-size="9" fill="#222222">370.5 µs</text>
+<rect x="530.5" y="189.2" width="25.2" height="144.8" fill="#2ca02c" rx="1.5"/>
+<text x="543.1" y="185.2" text-anchor="middle" font-size="9" fill="#222222">111.0 µs</text>
+<rect x="559.8" y="177.4" width="25.2" height="156.6" fill="#1f77b4" rx="1.5"/>
+<text x="572.3" y="173.4" text-anchor="middle" font-size="9" fill="#222222">125.1 µs</text>
+<rect x="589.0" y="84.8" width="25.2" height="249.2" fill="#d62728" rx="1.5"/>
+<text x="601.6" y="80.8" text-anchor="middle" font-size="9" fill="#222222">323.0 µs</text>
+<rect x="618.2" y="166.0" width="25.2" height="168.0" fill="#ff7f0e" rx="1.5"/>
+<text x="630.8" y="162.0" text-anchor="middle" font-size="9" fill="#222222">140.7 µs</text>
 <text x="589.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">filter-1k</text>
-<rect x="680.5" y="167.3" width="33.5" height="166.7" fill="#2ca02c" rx="1.5"/>
-<text x="697.3" y="163.3" text-anchor="middle" font-size="9" fill="#222222">157.5 µs</text>
-<rect x="719.5" y="127.1" width="33.5" height="206.9" fill="#1f77b4" rx="1.5"/>
-<text x="736.3" y="123.1" text-anchor="middle" font-size="9" fill="#222222">236.7 µs</text>
-<rect x="758.5" y="56.0" width="33.5" height="278.0" fill="#d62728" rx="1.5"/>
-<text x="775.3" y="52.0" text-anchor="middle" font-size="9" fill="#222222">487.3 µs</text>
+<rect x="680.5" y="175.4" width="25.2" height="158.6" fill="#2ca02c" rx="1.5"/>
+<text x="693.1" y="171.4" text-anchor="middle" font-size="9" fill="#222222">127.7 µs</text>
+<rect x="709.8" y="123.7" width="25.2" height="210.3" fill="#1f77b4" rx="1.5"/>
+<text x="722.3" y="119.7" text-anchor="middle" font-size="9" fill="#222222">217.1 µs</text>
+<rect x="739.0" y="56.0" width="25.2" height="278.0" fill="#d62728" rx="1.5"/>
+<text x="751.6" y="52.0" text-anchor="middle" font-size="9" fill="#222222">433.9 µs</text>
+<rect x="768.2" y="118.8" width="25.2" height="215.2" fill="#ff7f0e" rx="1.5"/>
+<text x="780.8" y="114.8" text-anchor="middle" font-size="9" fill="#222222">228.0 µs</text>
 <text x="739.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">map-1k</text>
-<rect x="830.5" y="255.0" width="33.5" height="79.0" fill="#2ca02c" rx="1.5"/>
-<text x="847.3" y="251.0" text-anchor="middle" font-size="9" fill="#222222">64.7 µs</text>
-<rect x="869.5" y="178.8" width="33.5" height="155.2" fill="#1f77b4" rx="1.5"/>
-<text x="886.3" y="174.8" text-anchor="middle" font-size="9" fill="#222222">140.2 µs</text>
-<rect x="908.5" y="86.0" width="33.5" height="248.0" fill="#d62728" rx="1.5"/>
-<text x="925.3" y="82.0" text-anchor="middle" font-size="9" fill="#222222">359.5 µs</text>
+<rect x="830.5" y="256.6" width="25.2" height="77.4" fill="#2ca02c" rx="1.5"/>
+<text x="843.1" y="252.6" text-anchor="middle" font-size="9" fill="#222222">55.6 µs</text>
+<rect x="859.8" y="175.8" width="25.2" height="158.2" fill="#1f77b4" rx="1.5"/>
+<text x="872.3" y="171.8" text-anchor="middle" font-size="9" fill="#222222">127.2 µs</text>
+<rect x="889.0" y="93.5" width="25.2" height="240.5" fill="#d62728" rx="1.5"/>
+<text x="901.6" y="89.5" text-anchor="middle" font-size="9" fill="#222222">295.6 µs</text>
+<rect x="918.2" y="152.1" width="25.2" height="181.9" fill="#ff7f0e" rx="1.5"/>
+<text x="930.8" y="148.1" text-anchor="middle" font-size="9" fill="#222222">162.1 µs</text>
 <text x="889.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">map-obj-100</text>
 <line x1="64" y1="334" x2="964" y2="334" stroke="#222222" stroke-width="1.2"/>
 <rect x="64" y="393" width="14" height="14" fill="#2ca02c" rx="2"/>
@@ -55,6 +67,8 @@
 <rect x="212" y="393" width="14" height="14" fill="#1f77b4" rx="2"/>
 <text x="232" y="404" font-size="12" fill="#222222">Native (JSON)</text>
 <rect x="353" y="393" width="14" height="14" fill="#d62728" rx="2"/>
-<text x="373" y="404" font-size="12" fill="#222222">GoRules</text>
+<text x="373" y="404" font-size="12" fill="#222222">GoRules.Zen</text>
+<rect x="480" y="393" width="14" height="14" fill="#ff7f0e" rx="2"/>
+<text x="500" y="404" font-size="12" fill="#222222">GoRules.ZenEngine</text>
 <text x="968" y="422" text-anchor="end" font-size="11" font-style="italic" fill="#666666">log scale · lower is better · sum-1k / sum-map-1k favour native; map/filter (large result) favour managed</text>
 </svg>

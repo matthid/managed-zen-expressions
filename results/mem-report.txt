@@ -4,41 +4,78 @@
 ============================================================
 
 -- eval (JSON context, the realistic per-call path) --
-  GoRules.Zen native heap is opaque; only its managed-side bytes are shown.
+  GoRules.Zen / ZenEngine native heaps are opaque; only managed-side bytes are shown.
   scenario                managed B/op   native B/op     real B/opnote            
   --------------------------------------------------------------------------------
   simple-few pure                    0           145           145                
-  simple-few json (managed)           952         1,281         2,233                
-  simple-few json (GoRules)           780             -           780native opaque   
+  simple-few json (managed)           880         1,281         2,161                
+  simple-few json (GoRules)           787             -           787native opaque   
+  simple-few zenengine (compiled)           928             -           928native opaque   
   complex-few pure                   0           140           140                
-  complex-few json (managed)         1,080         1,344         2,424                
-  complex-few json (GoRules)         1,057             -         1,057native opaque   
+  complex-few json (managed)         1,008         1,344         2,352                
+  complex-few json (GoRules)         1,060             -         1,060native opaque   
+  complex-few zenengine (compiled)           968             -           968native opaque   
   simple-many pure                   0           148           148                
-  simple-many json (managed)        11,192         8,732        19,924                
+  simple-many json (managed)        11,120         8,732        19,852                
   simple-many json (GoRules)         2,224             -         2,224native opaque   
+  simple-many zenengine (compiled)           936             -           936native opaque   
   complex-many pure                  0           142           142                
-  complex-many json (managed)         5,184         5,962        11,146                
-  complex-many json (GoRules)         1,632             -         1,632native opaque   
+  complex-many json (managed)         5,112         5,962        11,074                
+  complex-many json (GoRules)         1,633             -         1,633native opaque   
+  complex-many zenengine (compiled)           976             -           976native opaque   
   alloc-array pure                 824           966         1,790                
-  alloc-array json (managed)         4,640         4,400         9,040                
-  alloc-array json (GoRules)         4,786             -         4,786native opaque   
+  alloc-array json (managed)         2,040         4,400         6,440                
+  alloc-array json (GoRules)         4,788             -         4,788native opaque   
+  alloc-array zenengine (compiled)         1,960             -         1,960native opaque   
   alloc-object pure                552           833         1,385                
-  alloc-object json (managed)         1,760         2,477         4,237                
-  alloc-object json (GoRules)         1,999             -         1,999native opaque   
+  alloc-object json (managed)         1,128         2,477         3,605                
+  alloc-object json (GoRules)         2,002             -         2,002native opaque   
+  alloc-object zenengine (compiled)         1,960             -         1,960native opaque   
   alloc-string pure                264           593           857                
-  alloc-string json (managed)           832         1,849         2,681                
-  alloc-string json (GoRules)           977             -           977native opaque   
+  alloc-string json (managed)           760         1,849         2,609                
+  alloc-string json (GoRules)           979             -           979native opaque   
+  alloc-string zenengine (compiled)         1,040             -         1,040native opaque   
+  heavy-sum-1k pure                  0           150           150                
+  heavy-sum-1k json (managed)        40,368        82,734       123,102                
+  heavy-sum-1k json (GoRules)        12,480             -        12,480native opaque   
+  heavy-sum-1k zenengine (compiled)           944             -           944native opaque   
+  heavy-sum-map-1k pure              0        16,210        16,210                
+  heavy-sum-map-1k json (managed)        40,368        98,794       139,162                
+  heavy-sum-map-1k json (GoRules)        12,504             -        12,504native opaque   
+  heavy-sum-map-1k zenengine (compiled)           952             -           952native opaque   
+  heavy-arith-200 pure               0           149           149                
+  heavy-arith-200 json (managed)        53,704        37,169        90,873                
+  heavy-arith-200 json (GoRules)         7,592             -         7,592native opaque   
+  heavy-arith-200 zenengine (compiled)           936             -           936native opaque   
+  heavy-map-1k pure             40,024        47,089        87,113                
+  heavy-map-1k json (managed)        80,392       129,673       210,065                
+  heavy-map-1k json (GoRules)       166,136             -       166,136native opaque   
+  heavy-map-1k zenengine (compiled)        60,584             -        60,584native opaque   
+  heavy-filter-1k pure          61,048        26,578        87,626                
+  heavy-filter-1k json (managed)       101,416       109,162       210,578                
+  heavy-filter-1k json (GoRules)        85,530             -        85,530native opaque   
+  heavy-filter-1k zenengine (compiled)        26,960             -        26,960native opaque   
+  heavy-map-objects-100 pure        35,224        64,694        99,918                
+  heavy-map-objects-100 json (managed)        75,592       188,734       264,326                
+  heavy-map-objects-100 json (GoRules)        75,192             -        75,192native opaque   
+  heavy-map-objects-100 zenengine (compiled)        50,680             -        50,680native opaque   
 
 -- parse/compile (source text -> compiled) --
   scenario                managed B/op   native B/op     real B/opnote            
   --------------------------------------------------------------------------------
-  simple-few                     1,968         1,388         3,356                
-  complex-few                    5,808         4,790        10,598                
-  simple-many                   20,944        13,828        34,772                
-  complex-many                  25,888        18,630        44,518                
-  alloc-array                    1,976         1,243         3,219                
-  alloc-object                   8,000         6,398        14,398                
-  alloc-string                   4,248         3,342         7,590                
+  simple-few                     1,976         1,388         3,364                
+  complex-few                    5,816         4,790        10,606                
+  simple-many                   20,952        13,828        34,780                
+  complex-many                  25,896        18,630        44,526                
+  alloc-array                    1,984         1,243         3,227                
+  alloc-object                   8,008         6,398        14,406                
+  alloc-string                   4,256         3,342         7,598                
+  heavy-sum-1k                   1,016           672         1,688                
+  heavy-sum-map-1k               3,040         2,192         5,232                
+  heavy-arith-200               85,752        59,378       145,130                
+  heavy-map-1k                   2,472         1,800         4,272                
+  heavy-filter-1k                1,592           980         2,572                
+  heavy-map-objects-100          7,368         6,158        13,526                
 
 -- interop boundary (no work, just the call) --
   scenario                managed B/op   native B/op     real B/opnote            

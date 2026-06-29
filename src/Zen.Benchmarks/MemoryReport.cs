@@ -2,6 +2,7 @@ using System.Text.Json;
 using Zen.Gorules;
 using Zen.Interop;
 using Zen.Managed;
+using Zen.ZenEngine;
 
 namespace Zen.Benchmarks;
 
@@ -27,7 +28,7 @@ public static class MemoryReport
 
         // ----- eval paths -----
         Console.WriteLine("-- eval (JSON context, the realistic per-call path) --");
-        Console.WriteLine("  GoRules.Zen native heap is opaque; only its managed-side bytes are shown.");
+        Console.WriteLine("  GoRules.Zen / ZenEngine native heaps are opaque; only managed-side bytes are shown.");
         PrintHeader();
         foreach (var s in Scenarios.All)
         {
@@ -36,16 +37,20 @@ public static class MemoryReport
             var managedExpr = ZenExpression.Compile(s.Expression);
             var managedCtx = ZenJson.Parse(s.ContextJson);
             var gorulesExpr = GorulesZenExpression.Compile(s.Expression);
+            using var zenEngineExpr = ZenEngineExpression.Compile(s.Expression).UseContext(s.ContextJson);
 
             double mPure = ManagedBytes(() => managedExpr.Evaluate(managedCtx));
             double mJson = ManagedBytes(() => managedExpr.Evaluate(s.ContextJson));
             double nPure = NativeBytes(() => nativeExpr.Evaluate(nativeCtx));
             double nJson = NativeBytes(() => nativeExpr.Evaluate(s.ContextJson));
             double gManaged = ManagedBytesProcess(() => gorulesExpr.Evaluate(s.ContextJson));
+            // ZenEngine is synchronous (no thread-pool dispatch), so per-thread accounting is exact.
+            double zeManaged = ManagedBytes(() => zenEngineExpr.Evaluate());
 
             PrintRow(s.Name + " pure", mPure, nPure);
             PrintRow(s.Name + " json (managed)", mJson, nJson);
             PrintRow(s.Name + " json (GoRules)", gManaged, -1, note: "native opaque");
+            PrintRow(s.Name + " zenengine (compiled)", zeManaged, -1, note: "native opaque");
         }
 
         // ----- parse -----

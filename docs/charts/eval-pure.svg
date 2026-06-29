@@ -1,62 +1,76 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="980" height="430" viewBox="0 0 980 430" font-family="Segoe UI,Helvetica,Arial,sans-serif">
 <rect width="980" height="430" fill="#ffffff"/>
 <text x="490" y="26" text-anchor="middle" font-size="17" font-weight="600" fill="#222222">Evaluation throughput — compile-once / evaluate-many (pre-parsed context)</text>
-<line x1="64" y1="351.6" x2="964" y2="351.6" stroke="#dddddd" stroke-width="1"/>
-<text x="56" y="355.6" text-anchor="end" font-size="11" fill="#666666">100 ns</text>
-<line x1="64" y1="247.2" x2="964" y2="247.2" stroke="#dddddd" stroke-width="1"/>
-<text x="56" y="251.2" text-anchor="end" font-size="11" fill="#666666">1.0 µs</text>
-<line x1="64" y1="142.9" x2="964" y2="142.9" stroke="#dddddd" stroke-width="1"/>
-<text x="56" y="146.9" text-anchor="end" font-size="11" fill="#666666">10.0 µs</text>
-<line x1="64" y1="38.5" x2="964" y2="38.5" stroke="#dddddd" stroke-width="1"/>
-<text x="56" y="42.5" text-anchor="end" font-size="11" fill="#666666">100.0 µs</text>
-<rect x="78.1" y="334.0" width="28.7" height="0.0" fill="#2ca02c" rx="1.5"/>
-<text x="92.5" y="330.0" text-anchor="middle" font-size="9" fill="#222222">148 ns</text>
-<rect x="111.6" y="282.8" width="28.7" height="51.2" fill="#1f77b4" rx="1.5"/>
-<text x="125.9" y="278.8" text-anchor="middle" font-size="9" fill="#222222">456 ns</text>
-<rect x="145.0" y="189.5" width="28.7" height="144.5" fill="#d62728" rx="1.5"/>
-<text x="159.4" y="185.5" text-anchor="middle" font-size="9" fill="#222222">3.6 µs</text>
+<line x1="64" y1="350.3" x2="964" y2="350.3" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="354.3" text-anchor="end" font-size="11" fill="#666666">100 ns</text>
+<line x1="64" y1="246.2" x2="964" y2="246.2" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="250.2" text-anchor="end" font-size="11" fill="#666666">1.0 µs</text>
+<line x1="64" y1="142.1" x2="964" y2="142.1" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="146.1" text-anchor="end" font-size="11" fill="#666666">10.0 µs</text>
+<line x1="64" y1="38.0" x2="964" y2="38.0" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="42.0" text-anchor="end" font-size="11" fill="#666666">100.0 µs</text>
+<rect x="78.1" y="334.0" width="21.6" height="0.0" fill="#2ca02c" rx="1.5"/>
+<text x="88.9" y="330.0" text-anchor="middle" font-size="9" fill="#222222">144 ns</text>
+<rect x="103.2" y="309.5" width="21.6" height="24.5" fill="#1f77b4" rx="1.5"/>
+<text x="114.0" y="305.5" text-anchor="middle" font-size="9" fill="#222222">247 ns</text>
+<rect x="128.3" y="185.1" width="21.6" height="148.9" fill="#d62728" rx="1.5"/>
+<text x="139.1" y="181.1" text-anchor="middle" font-size="9" fill="#222222">3.9 µs</text>
+<rect x="153.4" y="232.5" width="21.6" height="101.5" fill="#ff7f0e" rx="1.5"/>
+<text x="164.1" y="228.5" text-anchor="middle" font-size="9" fill="#222222">1.4 µs</text>
 <text x="128.3" y="352.0" text-anchor="middle" font-size="11" fill="#222222">simple-few</text>
-<rect x="206.7" y="300.9" width="28.7" height="33.1" fill="#2ca02c" rx="1.5"/>
-<text x="221.1" y="296.9" text-anchor="middle" font-size="9" fill="#222222">306 ns</text>
-<rect x="240.1" y="273.7" width="28.7" height="60.3" fill="#1f77b4" rx="1.5"/>
-<text x="254.5" y="269.7" text-anchor="middle" font-size="9" fill="#222222">558 ns</text>
-<rect x="273.6" y="162.8" width="28.7" height="171.2" fill="#d62728" rx="1.5"/>
-<text x="287.9" y="158.8" text-anchor="middle" font-size="9" fill="#222222">6.4 µs</text>
+<rect x="206.7" y="302.1" width="21.6" height="31.9" fill="#2ca02c" rx="1.5"/>
+<text x="217.5" y="298.1" text-anchor="middle" font-size="9" fill="#222222">291 ns</text>
+<rect x="231.8" y="294.9" width="21.6" height="39.1" fill="#1f77b4" rx="1.5"/>
+<text x="242.6" y="290.9" text-anchor="middle" font-size="9" fill="#222222">341 ns</text>
+<rect x="256.9" y="162.1" width="21.6" height="171.9" fill="#d62728" rx="1.5"/>
+<text x="267.6" y="158.1" text-anchor="middle" font-size="9" fill="#222222">6.4 µs</text>
+<rect x="281.9" y="219.1" width="21.6" height="114.9" fill="#ff7f0e" rx="1.5"/>
+<text x="292.7" y="215.1" text-anchor="middle" font-size="9" fill="#222222">1.8 µs</text>
 <text x="256.9" y="352.0" text-anchor="middle" font-size="11" fill="#222222">complex-few</text>
-<rect x="335.3" y="208.7" width="28.7" height="125.3" fill="#2ca02c" rx="1.5"/>
-<text x="349.7" y="204.7" text-anchor="middle" font-size="9" fill="#222222">2.3 µs</text>
-<rect x="368.7" y="206.1" width="28.7" height="127.9" fill="#1f77b4" rx="1.5"/>
-<text x="383.1" y="202.1" text-anchor="middle" font-size="9" fill="#222222">2.5 µs</text>
-<rect x="402.1" y="62.4" width="28.7" height="271.6" fill="#d62728" rx="1.5"/>
-<text x="416.5" y="58.4" text-anchor="middle" font-size="9" fill="#222222">59.1 µs</text>
+<rect x="335.3" y="209.1" width="21.6" height="124.9" fill="#2ca02c" rx="1.5"/>
+<text x="346.1" y="205.1" text-anchor="middle" font-size="9" fill="#222222">2.3 µs</text>
+<rect x="360.4" y="208.7" width="21.6" height="125.3" fill="#1f77b4" rx="1.5"/>
+<text x="371.1" y="204.7" text-anchor="middle" font-size="9" fill="#222222">2.3 µs</text>
+<rect x="385.4" y="57.1" width="21.6" height="276.9" fill="#d62728" rx="1.5"/>
+<text x="396.2" y="53.1" text-anchor="middle" font-size="9" fill="#222222">65.6 µs</text>
+<rect x="410.5" y="150.6" width="21.6" height="183.4" fill="#ff7f0e" rx="1.5"/>
+<text x="421.3" y="146.6" text-anchor="middle" font-size="9" fill="#222222">8.3 µs</text>
 <text x="385.4" y="352.0" text-anchor="middle" font-size="11" fill="#222222">simple-many</text>
-<rect x="463.9" y="212.3" width="28.7" height="121.7" fill="#2ca02c" rx="1.5"/>
-<text x="478.2" y="208.3" text-anchor="middle" font-size="9" fill="#222222">2.2 µs</text>
-<rect x="497.3" y="211.8" width="28.7" height="122.2" fill="#1f77b4" rx="1.5"/>
-<text x="511.7" y="207.8" text-anchor="middle" font-size="9" fill="#222222">2.2 µs</text>
-<rect x="530.7" y="56.0" width="28.7" height="278.0" fill="#d62728" rx="1.5"/>
-<text x="545.1" y="52.0" text-anchor="middle" font-size="9" fill="#222222">67.9 µs</text>
+<rect x="463.9" y="212.0" width="21.6" height="122.0" fill="#2ca02c" rx="1.5"/>
+<text x="474.6" y="208.0" text-anchor="middle" font-size="9" fill="#222222">2.1 µs</text>
+<rect x="488.9" y="220.6" width="21.6" height="113.4" fill="#1f77b4" rx="1.5"/>
+<text x="499.7" y="216.6" text-anchor="middle" font-size="9" fill="#222222">1.8 µs</text>
+<rect x="514.0" y="56.0" width="21.6" height="278.0" fill="#d62728" rx="1.5"/>
+<text x="524.8" y="52.0" text-anchor="middle" font-size="9" fill="#222222">67.1 µs</text>
+<rect x="539.1" y="166.7" width="21.6" height="167.3" fill="#ff7f0e" rx="1.5"/>
+<text x="549.9" y="162.7" text-anchor="middle" font-size="9" fill="#222222">5.8 µs</text>
 <text x="514.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">complex-many</text>
-<rect x="592.4" y="300.9" width="28.7" height="33.1" fill="#2ca02c" rx="1.5"/>
-<text x="606.8" y="296.9" text-anchor="middle" font-size="9" fill="#222222">306 ns</text>
-<rect x="625.9" y="248.6" width="28.7" height="85.4" fill="#1f77b4" rx="1.5"/>
-<text x="640.2" y="244.6" text-anchor="middle" font-size="9" fill="#222222">969 ns</text>
-<rect x="659.3" y="180.5" width="28.7" height="153.5" fill="#d62728" rx="1.5"/>
-<text x="673.7" y="176.5" text-anchor="middle" font-size="9" fill="#222222">4.4 µs</text>
+<rect x="592.4" y="301.6" width="21.6" height="32.4" fill="#2ca02c" rx="1.5"/>
+<text x="603.2" y="297.6" text-anchor="middle" font-size="9" fill="#222222">294 ns</text>
+<rect x="617.5" y="263.6" width="21.6" height="70.4" fill="#1f77b4" rx="1.5"/>
+<text x="628.3" y="259.6" text-anchor="middle" font-size="9" fill="#222222">680 ns</text>
+<rect x="642.6" y="178.2" width="21.6" height="155.8" fill="#d62728" rx="1.5"/>
+<text x="653.4" y="174.2" text-anchor="middle" font-size="9" fill="#222222">4.5 µs</text>
+<rect x="667.6" y="225.5" width="21.6" height="108.5" fill="#ff7f0e" rx="1.5"/>
+<text x="678.4" y="221.5" text-anchor="middle" font-size="9" fill="#222222">1.6 µs</text>
 <text x="642.6" y="352.0" text-anchor="middle" font-size="11" fill="#222222">alloc-string</text>
-<rect x="721.0" y="274.5" width="28.7" height="59.5" fill="#2ca02c" rx="1.5"/>
-<text x="735.4" y="270.5" text-anchor="middle" font-size="9" fill="#222222">548 ns</text>
-<rect x="754.4" y="218.8" width="28.7" height="115.2" fill="#1f77b4" rx="1.5"/>
-<text x="768.8" y="214.8" text-anchor="middle" font-size="9" fill="#222222">1.9 µs</text>
-<rect x="787.9" y="143.8" width="28.7" height="190.2" fill="#d62728" rx="1.5"/>
-<text x="802.2" y="139.8" text-anchor="middle" font-size="9" fill="#222222">9.8 µs</text>
+<rect x="721.0" y="273.3" width="21.6" height="60.7" fill="#2ca02c" rx="1.5"/>
+<text x="731.8" y="269.3" text-anchor="middle" font-size="9" fill="#222222">550 ns</text>
+<rect x="746.1" y="233.8" width="21.6" height="100.2" fill="#1f77b4" rx="1.5"/>
+<text x="756.9" y="229.8" text-anchor="middle" font-size="9" fill="#222222">1.3 µs</text>
+<rect x="771.1" y="142.6" width="21.6" height="191.4" fill="#d62728" rx="1.5"/>
+<text x="781.9" y="138.6" text-anchor="middle" font-size="9" fill="#222222">9.9 µs</text>
+<rect x="796.2" y="193.9" width="21.6" height="140.1" fill="#ff7f0e" rx="1.5"/>
+<text x="807.0" y="189.9" text-anchor="middle" font-size="9" fill="#222222">3.2 µs</text>
 <text x="771.1" y="352.0" text-anchor="middle" font-size="11" fill="#222222">alloc-object</text>
-<rect x="849.6" y="217.1" width="28.7" height="116.9" fill="#2ca02c" rx="1.5"/>
-<text x="863.9" y="213.1" text-anchor="middle" font-size="9" fill="#222222">1.9 µs</text>
-<rect x="883.0" y="172.3" width="28.7" height="161.7" fill="#1f77b4" rx="1.5"/>
-<text x="897.4" y="168.3" text-anchor="middle" font-size="9" fill="#222222">5.2 µs</text>
-<rect x="916.4" y="100.6" width="28.7" height="233.4" fill="#d62728" rx="1.5"/>
-<text x="930.8" y="96.6" text-anchor="middle" font-size="9" fill="#222222">25.4 µs</text>
+<rect x="849.6" y="216.1" width="21.6" height="117.9" fill="#2ca02c" rx="1.5"/>
+<text x="860.4" y="212.1" text-anchor="middle" font-size="9" fill="#222222">1.9 µs</text>
+<rect x="874.6" y="184.5" width="21.6" height="149.5" fill="#1f77b4" rx="1.5"/>
+<text x="885.4" y="180.5" text-anchor="middle" font-size="9" fill="#222222">3.9 µs</text>
+<rect x="899.7" y="122.2" width="21.6" height="211.8" fill="#d62728" rx="1.5"/>
+<text x="910.5" y="118.2" text-anchor="middle" font-size="9" fill="#222222">15.5 µs</text>
+<rect x="924.8" y="168.0" width="21.6" height="166.0" fill="#ff7f0e" rx="1.5"/>
+<text x="935.6" y="164.0" text-anchor="middle" font-size="9" fill="#222222">5.6 µs</text>
 <text x="899.7" y="352.0" text-anchor="middle" font-size="11" fill="#222222">alloc-array</text>
 <line x1="64" y1="334" x2="964" y2="334" stroke="#222222" stroke-width="1.2"/>
 <rect x="64" y="393" width="14" height="14" fill="#2ca02c" rx="2"/>
@@ -65,5 +79,7 @@
 <text x="232" y="404" font-size="12" fill="#222222">Native manual (pure)</text>
 <rect x="402" y="393" width="14" height="14" fill="#d62728" rx="2"/>
 <text x="422" y="404" font-size="12" fill="#222222">GoRules.Zen</text>
-<text x="968" y="422" text-anchor="end" font-size="11" font-style="italic" fill="#666666">log scale · lower is better · left 4 = scalar, right 3 = allocating</text>
+<rect x="529" y="393" width="14" height="14" fill="#ff7f0e" rx="2"/>
+<text x="549" y="404" font-size="12" fill="#222222">GoRules.ZenEngine</text>
+<text x="968" y="422" text-anchor="end" font-size="11" font-style="italic" fill="#666666">log scale · lower is better · ZenEngine (compiled+sync) ~3-8x faster than GoRules.Zen, still trails managed</text>
 </svg>

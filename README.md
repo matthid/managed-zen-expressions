@@ -1,44 +1,57 @@
 # Zen Expression Language — Managed vs Native (.NET interop) comparison
 
 A from-scratch implementation of the [GoRules ZEN expression language](https://docs.gorules.io/learn/zen-language/syntax)
-evaluated **three ways**, benchmarked to answer one question:
+evaluated **four ways**, benchmarked to answer one question:
 
 > **Does the raw speed of unmanaged (Rust) code offset the cost of .NET interop
 > against a genuinely performant pure-managed (C#) implementation?**
 
-The README is in two parts:
+The README is in three parts:
 
 - **[Part 1 — Initial implementation](#part-1--initial-implementation-managed-vs-native-benchmarks):**
   the original managed-vs-native benchmark study (throughput, parse, interop, memory, charts, analysis).
 - **[Part 2 — Variants & features](#part-2--variants--features):** everything added
-  on top — the three engine variants, deterministic resource limits (+ an
+  on top — the four engines, deterministic resource limits (+ an
   enforcement-overhead optimization), cold-start/footprint overhead, strict-compat
   mode, and test coverage.
+- **[Part 3 — Second official binding](#part-3--second-official-binding-goruleszenengine):**
+  adding `GoRules.ZenEngine` — does the official engine's 20–34× gap live in the
+  engine or the binding? (Spoiler: the binding.)
 
-The three engines, all evaluating the *same* Zen subset:
+Four engines, all evaluating the *same* Zen subset:
 
 | Engine | What it is |
 | --- | --- |
 | **`Zen.Managed`**   | Pure C# implementation (lexer, Pratt parser, struct-based evaluator). **The managed library under test.** |
 | **`Zen.Native` + `Zen.Interop`** | A manual Rust `cdylib` implementing the same subset, called via my own P/Invoke wrapper. A clean "native eval speed + minimal interop" probe. Its global allocator is instrumented, so its **native heap is measurable**. |
-| **`GoRules.Zen`** (NuGet) | The **official** native Rust engine shipped to .NET via UniFFI — the real-world "unmanaged engine via interop" path. |
+| **`GoRules.Zen`** (NuGet) | An **official** native Rust engine shipped to .NET via UniFFI — async `Evaluate<T>` that re-parses the expression and re-serializes the context every call. The legacy "unmanaged engine via interop" path. |
+| **`GoRules.ZenEngine`** (NuGet) | A **second official** .NET binding of the *same* Rust core — newer, with a **synchronous, precompiled** `ZenExpression.Compile` + `JsonBuffer` API (the fast path `GoRules.Zen` lacks). Added to test whether the 20–34× gap is the *engine* or the *binding*. |
 
-`Zen.Tests` proves all three agree on a battery of expressions (managed↔native,
-managed↔official). `Zen.Benchmarks` measures throughput and memory.
+`Zen.Tests` proves all four agree on a battery of expressions (managed↔native,
+managed↔each official binding). `Zen.Benchmarks` measures throughput and memory.
 
 ## TL;DR — does native win?
 
 **No, not at this granularity.** A performant managed implementation matches or
-beats both native engines for every expression size tested, because:
+beats every native binding for every expression size tested, because:
 
 1. **Raw P/Invoke is cheap (~6.8 ns/call)** — but it is *not* the dominant cost.
    The cost is **marshalling**: the native engines must serialize the context to
    JSON, cross the boundary, and serialize the result back. That is µs-scale and
    dominates ns-scale expression work.
-2. The official **`GoRules.Zen` pays a ~4 µs floor on every call** (async `Task`
+2. The legacy **`GoRules.Zen` pays a ~4 µs floor on every call** (async `Task`
    + thread-pool dispatch + full JSON context round-trip), so it is **20–34×
-   slower** than managed pure-eval regardless of expression size. Its API offers
-   no "pre-compiled / pre-parsed context" fast path.
+   slower** than managed pure-eval. Its API offers no "pre-compiled / pre-parsed
+   context" fast path. **The newer `GoRules.ZenEngine` binding fixes both**:
+   `ZenExpression.Compile` amortizes the parse and `Evaluate(JsonBuffer)` is
+   synchronous — it closes most of the gap (**~3–8× faster than `GoRules.Zen`**)
+   yet still trails managed, because the context is still JSON bytes parsed every
+   call (managed holds it as a live in-process object). On heavy scalar work it
+   lines up with managed's *JSON* path, not its pure path. The slowness was the
+   *binding*, not the engine — but a native binding can never skip the context
+   serialization that a managed engine structurally avoids.
+3. The managed hot path allocates **zero GC bytes for scalar-producing
+   expressions**
 3. The managed hot path allocates **zero GC bytes for scalar-producing
    expressions** (condition evaluation — discriminated `struct` values hold
    arrays/objects *by reference*). Expressions that *reshape* data (`map`,
@@ -59,7 +72,8 @@ src/Zen.Managed/      Pure C# engine (the library)
 native/zen-native/    Rust cdylib (manual native engine + counting allocator)
 src/Zen.Interop/      P/Invoke wrapper over libzen_native
 src/Zen.Gorules/      Adapter over the official GoRules.Zen NuGet package
-src/Zen.Tests/        xUnit parity + limits (301 tests) — all green
+src/Zen.ZenEngine/    Adapter over the official GoRules.ZenEngine NuGet package (2nd binding)
+src/Zen.Tests/        xUnit parity + limits (374 tests) — all green
 src/Zen.Benchmarks/   BenchmarkDotNet suite + standalone --mem / --overhead / --probe reports
 docker/Dockerfile     Multi-stage build (Rust + .NET 8, Ubuntu 24.04 noble for glibc 2.39)
 Zen.sln
@@ -90,9 +104,10 @@ docker run --rm -e ZEN_STRICT_COMPAT=1 -v "$PWD":/work -w /work zen-dev dotnet t
 
 # Part 1 — Initial implementation: managed vs native benchmarks
 
-The original study: the same Zen subset evaluated three ways, measured on
-throughput, parse, interop and memory across simple/complex × few/many
-parameters, plus allocating (data-reshaping) expressions for fairness.
+The original study: the same Zen subset evaluated four ways (the fourth,
+`GoRules.ZenEngine`, added in Part 3), measured on throughput, parse, interop and
+memory across simple/complex × few/many parameters, plus allocating
+(data-reshaping) expressions for fairness.
 
 ## Detailed results
 
@@ -108,49 +123,77 @@ generated by `python3 scripts/generate_charts.py`; figures vary a few % run-to-r
 
 ![Evaluation throughput — JSON context per call](docs/charts/eval-json.svg)
 
-| Scenario | Managed pure | Native pure (manual) | GoRules (official) | Managed JSON | Native JSON (manual) | GoRules JSON |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| simple-few    | **148 ns** | 457 ns (3.1×) | 3 571 ns (24×) | 590 ns | 926 ns | 4 328 ns |
-| complex-few   | **306 ns** | 558 ns (1.8×) | 6 436 ns (21×) | 989 ns | 1 280 ns | 6 559 ns |
-| simple-many   | **2 340 ns** | 2 478 ns (1.1×) | 59 053 ns (25×) | 7 899 ns | 10 750 ns | 71 958 ns |
-| complex-many  | **2 163 ns** | 2 183 ns (1.0×) | 67 934 ns (31×) | 4 510 ns | 5 360 ns | 71 742 ns |
-| alloc-string  | **306 ns** | 969 ns (3.2×) | 4 356 ns (14×) | 593 ns | 1 462 ns | 5 460 ns |
-| alloc-object  | **548 ns** | 1 871 ns (3.4×) | 9 804 ns (18×) | 1 015 ns | 2 291 ns | 27 439 ns |
-| alloc-array   | **1 943 ns** | 5 227 ns (2.7×) | 25 382 ns (13×) | 3 384 ns | 6 123 ns | 18 905 ns |
+**Pure-eval** (compile-once / pre-parsed context) — ns/op, lower is better (bold = row winner):
+
+| Scenario | Managed | Native (manual) | GoRules.Zen | GoRules.ZenEngine |
+| --- | ---: | ---: | ---: | ---: |
+| simple-few    | **144** | 247 | 3 868 | 1 355 |
+| complex-few   | **291** | 341 | 6 432 | 1 821 |
+| simple-many   | **2 273** | 2 294 | 65 597 | 8 290 |
+| complex-many  | 2 132 | **1 761** | 67 144 | 5 806 |
+| alloc-string  | **294** | 680 | 4 500 | 1 580 |
+| alloc-object  | **550** | 1 316 | 9 894 | 3 183 |
+| alloc-array   | **1 946** | 3 917 | 15 516 | 5 646 |
+
+**JSON-eval** (parse context per call) — ns/op:
+
+| Scenario | Managed | Native (manual) | GoRules.Zen | GoRules.ZenEngine |
+| --- | ---: | ---: | ---: | ---: |
+| simple-few    | **589** | 683 | 4 500 | 1 372 |
+| complex-few   | **990** | 1 010 | 6 549 | 1 863 |
+| simple-many   | **7 606** | 9 568 | 73 867 | 8 600 |
+| complex-many  | **4 612** | 4 833 | 67 587 | 5 703 |
+| alloc-string  | **570** | 1 129 | 5 574 | 1 623 |
+| alloc-object  | **984** | 1 753 | 11 379 | 3 046 |
+| alloc-array   | **3 181** | 4 736 | 48 407 | 5 667 |
 
 Takeaways:
-- **Managed wins every cell.** On pure-eval it ties manual-native only for the
-  largest scalar expression (`complex-many`); everywhere else it is faster, and on
-  the allocating expressions it beats manual-native by **2.7–3.4×**.
+- **Managed wins almost every cell** (manual-native edges it on `complex-many`
+  pure). On pure-eval it ties manual-native on the largest scalar expressions and
+  beats it by ~2–3× on the allocating ones.
+- **`GoRules.ZenEngine` closes most of `GoRules.Zen`'s gap** — it is **~3–8×
+  faster** than the legacy `GoRules.Zen` on every scenario, because it compiles the
+  expression once (`ZenExpression.Compile`) and evaluates **synchronously**
+  (`Evaluate(JsonBuffer)`, no async/thread-pool floor). Yet it still trails
+  managed: ZenEngine's "pure" path parses the JSON context every call (the context
+  is raw `JsonBuffer` bytes), so it lines up with managed's *JSON* path, not its
+  pure path. The 20–34× penalty was the *binding's* design (async + no
+  precompile), not the engine — but no native binding can skip the context
+  serialization a managed engine structurally avoids.
 - **Allocating expressions are the honest case:** managed pure-eval is *not*
   zero-alloc here (it builds the result array/object/string) — see the memory
   table — yet it still leads on both speed and allocation.
-- **GoRules is 13–31× slower** than managed pure-eval. Its `Evaluate<T>` API is
-  async, always serializes the context object, and dispatches to the thread pool;
-  it offers no pre-compiled / pre-parsed-context fast path.
 - **JSON-eval** (parse context + eval): managed and manual-native are within a few
-  percent on scalars; on allocating expressions managed pulls ahead because native
-  must also marshal the (now non-scalar) result back across the boundary.
+  percent on scalars; `GoRules.ZenEngine` is competitive with managed on large
+  contexts (its Rust `serde` is fast — `simple-many` JSON 8.6 µs vs managed 7.6
+  µs), while legacy `GoRules.Zen` lags far behind.
 
 #### Fairness: how each engine ingests context
 
 The two paths measure two realistic regimes, and the cost each engine pays is a
 real capability difference, not a measurement artifact:
 
-- **JSON-string path (`*_Json`)** — all three start from the *same raw JSON string*
-  and must parse it. Managed parses once (System.Text.Json → `ZenValue`); the manual
-  native binding takes raw bytes and parses once (serde); the **official GoRules
-  binding takes a context *object* and `JsonSerializer.Serialize`s it on every call**
-  (confirmed in its source) — so from a JSON string it pays parse + serialize + native
-  parse. Same input; the difference is each engine's real API cost.
+- **JSON-string path (`*_Json`)** — all engines start from the *same raw JSON string*
+  and must parse it. Managed parses once (UTF-16 `ZenJson` → `ZenValue`); the manual
+  native binding takes raw bytes and parses once (serde); **`GoRules.ZenEngine` takes
+  a `JsonBuffer` of raw bytes** (no managed-side object serialization); the **legacy
+  `GoRules.Zen` binding takes a context *object* and `JsonSerializer.Serialize`s it on
+  every call**, so from a JSON string it pays parse + serialize + native parse.
+  Same input; the difference is each binding's real API cost.
 - **Pre-parsed path (`*_Pure`)** — managed and manual-native can **cache a parsed
   context** (a `ZenValue` / a native context handle) and evaluate with **no per-call
-  JSON**. The official GoRules binding **cannot** — it serializes the context object
-  every call (no reusable-context API), so `GoRules_Pure` still pays serialization.
+  JSON**. `GoRules.ZenEngine` **precompiles the expression** (`ZenExpression.Compile`,
+  reused) and reuses a `JsonBuffer` — but the *context is still raw bytes parsed by
+  Rust every call*; it cannot hold a parsed context. Legacy `GoRules.Zen` re-parses
+  *both* the expression and a serialized context every call. So `ZenEngine_Pure`
+  benchmarks like a JSON path that amortizes parse-of-expression, not like managed's
+  true pure path.
 
 This is the whole point of the comparison: a managed engine can hold the context as
 a **live in-process object** and skip serialization entirely, which native engines
 structurally cannot — they must serialize any object to cross the boundary.
+`GoRules.ZenEngine` removes the *binding's* taxes (async dispatch, per-call compile)
+but not this structural one.
 
 ### Parse / compile (lower is better)
 
@@ -191,24 +234,24 @@ the instrumented allocator in the manual native lib to show the *real* picture:
 
 **Pure-eval** (compile-once / eval-many) — managed is 0 only for scalar expressions:
 
-| Scenario | Managed GC B/op | Native heap B/op |
-| --- | ---: | ---: |
-| simple-few / complex-few / simple-many / complex-many | **0** | ~140–148 |
-| alloc-string | 264 | 593 |
-| alloc-object | 552 | 833 |
-| alloc-array  | 824 | 966 |
+| Scenario | Managed GC B/op | Native heap B/op | ZenEngine GC B/op |
+| --- | ---: | ---: | ---: |
+| simple-few / complex-few / simple-many / complex-many | **0** | ~140–148 | ~928–976 |
+| alloc-string | 264 | 593 | 1 040 |
+| alloc-object | 552 | 833 | 1 960 |
+| alloc-array  | 824 | 966 | 1 960 |
 
 **JSON-eval** (parse context per call) — native hides most cost on its heap:
 
-| Scenario | Managed GC B/op | Native heap B/op |
-| --- | ---: | ---: |
-| simple-few   | 952 | 1 281 |
-| complex-few  | 1 080 | 1 344 |
-| simple-many  | 11 192 | 8 732 |
-| complex-many | 5 184 | 5 962 |
-| alloc-string | 832 | 1 849 |
-| alloc-object | 1 760 | 2 477 |
-| alloc-array  | 4 640 | 4 400 |
+| Scenario | Managed GC B/op | Native heap B/op | ZenEngine GC B/op |
+| --- | ---: | ---: | ---: |
+| simple-few   | 952 | 1 281 | 1 008 |
+| complex-few  | 1 080 | 1 344 | 1 104 |
+| simple-many  | 11 192 | 8 732 | 1 416 |
+| complex-many | 5 184 | 5 962 | 1 208 |
+| alloc-string | 832 | 1 849 | 1 136 |
+| alloc-object | 1 760 | 2 477 | 2 040 |
+| alloc-array  | 4 640 | 4 400 | 2 088 |
 
 - On the **pure** scalar hot path managed allocates **nothing**; on allocating
   expressions it allocates the result (264–824 B) — still less than native.
@@ -216,6 +259,10 @@ the instrumented allocator in the manual native lib to show the *real* picture:
   reports only ~150–560 managed B/op for native-json, but the *real* footprint
   (up to ~9 KB/op of serde-parsed context) only shows up via the counting allocator.
   **Don't trust GC-only numbers to compare against native code.**
+- `GoRules.ZenEngine`'s GC column (native heap opaque) is the cost of getting a
+  `ZenValue` *out* of the native engine per call (result `JsonBuffer` + parse); it is
+  a steady ~1 KB/op on scalars and, notably, **far below legacy `GoRules.Zen` on the
+  heavy allocating cases** (e.g. `heavy-map-1k` 61 KB vs GoRules 166 KB managed-side).
 - Native heap retained after 20 000 evals: **0 bytes** — no leaks; everything
   transient is freed.
 
@@ -244,14 +291,33 @@ between **managed and manual-native**.)
 
 ![Heavy load — JSON context per call](docs/charts/heavy-json.svg)
 
-| Scenario (managed vs native) | Managed pure | Native pure | Managed JSON | Native JSON |
+**Heavy pure-eval** (µs; ✅ = manual-native beats managed; **bold** = row winner):
+
+| Scenario | Managed | Native (manual) | GoRules.Zen | GoRules.ZenEngine |
 | --- | ---: | ---: | ---: | ---: |
-| heavy-sum-1k (sum of 1 000, scalar result) | 3.9 µs | **3.2 µs** ✅ | 60.9 µs | **29.0 µs** ✅ |
-| heavy-sum-map-1k (intermediate 1 000-array, scalar result) | 80.2 µs | **78.0 µs** ≈ | 128.6 µs | **100.0 µs** ✅ |
-| heavy-arith-200 (200-term arithmetic, scalar) | **11.2 µs** | 10.5 µs | **34.2 µs** | 63.7 µs |
-| heavy-filter-1k (~500-element result) | **61.7 µs** | 110.6 µs | **121.3 µs** | 133.6 µs |
-| heavy-map-1k (1 000-element result) | **89.1 µs** | 234.4 µs | **157.5 µs** | 236.7 µs |
-| heavy-map-objects-100 (100 objects result) | **36.9 µs** | 97.6 µs | **64.7 µs** | 140.2 µs |
+| heavy-sum-1k (1 000-array sum, scalar) | 3.8 | **2.9** ✅ | 157.8 | 52.1 |
+| heavy-sum-map-1k (intermediate 1 000-array, scalar) | 75.7 | **68.1** ✅ | 241.0 | 120.3 |
+| heavy-arith-200 (200-term arithmetic, scalar) | 10.2 | **9.7** ✅ | 133.1 | 32.0 |
+| heavy-filter-1k (~500-element result) | **56.8** | 106.7 | 282.5 | 141.9 |
+| heavy-map-1k (1 000-element result) | **81.2** | 197.3 | 413.1 | 231.9 |
+| heavy-map-objects-100 (100 objects result) | **33.0** | 86.3 | 273.3 | 155.8 |
+
+**Heavy JSON-eval** (µs):
+
+| Scenario | Managed | Native (manual) | GoRules.Zen | GoRules.ZenEngine |
+| --- | ---: | ---: | ---: | ---: |
+| heavy-sum-1k | 53.1 | **25.2** ✅ | 183.4 | 51.3 |
+| heavy-sum-map-1k | 121.2 | **93.6** ✅ | 273.5 | 123.2 |
+| heavy-arith-200 | 33.3 | 56.7 | 141.7 | **32.9** |
+| heavy-filter-1k | **111.0** | 125.1 | 323.0 | 140.7 |
+| heavy-map-1k | **127.7** | 217.1 | 433.9 | 228.0 |
+| heavy-map-objects-100 | **55.6** | 127.2 | 295.6 | 162.1 |
+
+ZenEngine note: because it parses the JSON context every call, `ZenEngine_Pure`
+tracks managed's *JSON* column, not its pure column — e.g. `heavy-sum-1k` 52.1 µs
+(pure) ≈ managed JSON 53.1 µs, vs managed pure 3.8 µs. On result-heavy work
+(`map-1k`, `map-objects-100`) it pays to marshal the result back and trails both
+managed and manual-native, though still 2–3× faster than legacy `GoRules.Zen`.
 
 The deciding factor is **where the allocation lives and what crosses back**:
 
@@ -295,23 +361,28 @@ Everything added on top of the initial benchmark study.
 
 ## Engine variants
 
-The comparison runs the **same Zen subset** through three engines (see the table
+The comparison runs the **same Zen subset** through four engines (see the table
 at the top):
 
 - **`Zen.Managed`** — pure C#; the library under test. Zero native deps, zero
   GC alloc on the scalar hot path.
-- **`GoRules.Zen`** (official NuGet) — **the library you'd actually ship**: the
-  real-world "unmanaged engine via interop" path (native Rust via UniFFI). Used
-  as-is, unmodified. It appears in *every* chart because it's the production
-  choice this study is really weighing managed against.
+- **`GoRules.Zen`** (official NuGet) — the **legacy** official .NET binding
+  (native Rust via UniFFI): async `Evaluate<T>` that re-parses the expression and
+  re-serializes the context every call. The "unmanaged engine via interop" path
+  this study originally weighed managed against.
+- **`GoRules.ZenEngine`** (official NuGet) — the **newer** official .NET binding of
+  the *same* Rust core, with a synchronous `ZenExpression.Compile` +
+  `Evaluate(JsonBuffer)` API. Added to test whether the official engine's 20–34×
+  gap (measured through `GoRules.Zen`) is the engine or the binding — verdict in
+  [Part 3](#part-3--second-official-binding-goruleszenengine).
 - **`Zen.Native` + `Zen.Interop`** — a *reference* manual Rust `cdylib` + P/Invoke
   wrapper (not a published package). It has a lean raw-bytes C ABI and a **counting
   global allocator** (so its native heap is measurable — the thing .NET metrics
   cannot see). It's included to isolate "native eval speed + minimal interop" —
   i.e. how fast native *could* be with an ideal binding — which is why it beats the
-  official library on every cell.
+  official libraries on every cell.
 
-All three are exercised by the same `Scenarios` matrix (simple/complex × few/many
+All four are exercised by the same `Scenarios` matrix (simple/complex × few/many
 + allocating) and the same parity battery.
 
 ## Resource limits (deterministic compute/memory budgets)
@@ -372,19 +443,23 @@ The per-op benchmarks in Part 1 measure the steady-state hot path. The
 
 ![Cold first call (fresh process: lib load + JIT + first eval)](docs/charts/cold-start.svg)
 
-| | Managed | Native (manual) | GoRules (official) |
-| --- | ---: | ---: | ---: |
-| Binary footprint | 35 KB (`Zen.Managed.dll`) | +548 KB (`libzen_native.so`) | **~19 MB** (`libzen_ffi.so` 12.5 MB + `libcapstone.so` 6.7 MB) |
-| Native `dlopen` | n/a (pure managed) | ~0.1 ms | (included below) |
-| Cold first call | ~13 ms (JIT) | ~0.4 ms | **~55 ms** (dlopen 12 MB + UniFFI init + thread-pool) |
-| Warm eval (simple) | ~145 ns | ~456 ns | ~3.6 µs |
+| | Managed | Native (manual) | GoRules.Zen | GoRules.ZenEngine |
+| --- | ---: | ---: | ---: | ---: |
+| Binary footprint | 35 KB (`Zen.Managed.dll`) | +548 KB (`libzen_native.so`) | **~19 MB** (`libzen_ffi` 12.5 MB + `libcapstone` 6.7 MB) | **~12.5 MB** (`libzen_uniffi` 12.4 MB; no capstone) |
+| Native `dlopen` | n/a (pure managed) | ~0.1 ms | (included below) | (included below) |
+| Cold first call | ~12 ms (JIT) | ~0.4 ms | **~62 ms** (dlopen 12 MB + UniFFI init + thread-pool) | **~7.9 ms** (sync: lib load + first compiled-eval) |
+| Warm eval (simple) | ~144 ns | ~247 ns | ~3.9 µs | ~1.4 µs |
 
 Takeaways:
 - **Pure managed has the smallest footprint** (35 KB, no native deps) and no
-  `dlopen`; the official engine ships ~19 MB of native code and pays a ~55 ms
-  cold-start on the first call.
+  `dlopen`; the legacy official engine ships ~19 MB and pays a ~62 ms cold-start,
+  while the newer `GoRules.ZenEngine` ships ~12.5 MB (no capstone) and is cold in
+  **~7.9 ms** — faster than managed's JIT (~12 ms), because its first call is a
+  native eval with no expression JIT.
 - The manual native engine is a useful middle ground: 548 KB, sub-ms cold, and
   fast warm — but it still crosses the interop boundary per call.
+- `GoRules.ZenEngine`'s warm ~1.4 µs is ~30× faster than `GoRules.Zen`'s ~3.9 µs
+  (synchronous, no thread-pool floor) — but still ~10× managed's ~144 ns.
 - Cold numbers are one-shot per fresh process (min of 5 runs); warm is steady-state.
 
 ## Strict-compat mode
@@ -405,11 +480,14 @@ comparison (`'a' < 'b'`), `replace()`, `substring()`, and `'needle' in 'haystack
 
 ## Test coverage
 
-301 tests, green in both default and strict modes:
+374 tests, green in both default and strict modes:
 
 - **`ParityTests`** — managed ↔ manual-native agree on the full battery
   (simple/complex × few/many + allocating), plus the managed pure vs JSON paths.
-- **`GorulesParityTests`** — managed ↔ official GoRules reference (see strict mode above).
+- **`GorulesParityTests`** — managed ↔ official `GoRules.Zen` reference (see strict mode above).
+- **`ZenEngineParityTests`** — managed ↔ official `GoRules.ZenEngine` (the second
+  binding), through its compiled `ZenExpression.Compile` path — same shared-subset /
+  strict-compat semantics, confirming the newer binding's wiring agrees with managed.
 - **`LimitTests`** — step/allocation/byte/parse-depth/parse-length budgets abort
   deterministically, including a hostile-input case and a deterministic-repeat check.
 
@@ -423,3 +501,48 @@ closures via `#` (`map`, `filter`, `some`, `all`, `sum`, …). Operator preceden
 follows the published GoRules table. Precedence is exercised by the parity suite
 against the official engine. Out of scope: template/backtick strings, string
 slicing, assignment statements, decision-graph (JDM) evaluation.
+
+---
+
+# Part 3 — Second official binding: `GoRules.ZenEngine`
+
+GoRules ships **two** .NET NuGet bindings of the *same* native Rust core, and the
+study originally only exercised one. Adding the second resolves a question the
+TL;DR raises but can't answer on its own: **is the official engine's 20–34× gap the
+engine, or the binding?**
+
+| Binding | API shape | Per-call taxes |
+| --- | --- | --- |
+| `GoRules.Zen` (legacy) | async `ZenExpression.Evaluate<T>(expr, context)` | re-parse expression; `JsonSerializer.Serialize` the context object; `Task` + thread-pool dispatch |
+| `GoRules.ZenEngine` (newer) | sync `ZenExpression.Compile(expr).Evaluate(JsonBuffer)` | expression compiled once; context is raw `JsonBuffer` bytes; no thread-pool |
+
+`GoRules.ZenEngine` removes *both* binding taxes the README blamed for the gap — it
+precompiles the expression and evaluates synchronously. Measured on the same suite:
+
+- **Throughput:** `GoRules.ZenEngine` is **~3–8× faster than `GoRules.Zen`** on the
+  standard scenarios (`simple-few` 1.36 µs vs 3.87 µs; `simple-many` 8.3 µs vs
+  65.6 µs) and **~2–3× faster on heavy**. The 20–34× penalty was the *binding*, not
+  the engine.
+- **But it still can't reach managed.** `ZenEngine_Pure`'s context is a `JsonBuffer`
+  of raw bytes that Rust re-parses *every call* — there is no "hold the parsed
+  context" path. So on the heavy scalar case it lines up with managed's *JSON*
+  column, not its pure column (`heavy-sum-1k`: ZenEngine 52 µs ≈ managed JSON 53 µs,
+  vs managed pure 3.8 µs). On result-heavy work it pays to marshal the result back
+  and trails both managed and manual-native.
+- **Cold start:** synchronous, no thread-pool spawn → **~7.9 ms** first call (vs
+  `GoRules.Zen`'s ~62 ms, and even below managed's ~12 ms JIT). Footprint ~12.5 MB
+  (no `libcapstone`).
+- **Memory:** its managed-side allocation is steady (~1 KB/op on scalars — the cost
+  of extracting a `ZenValue` from the native result) and, on heavy allocating cases,
+  **well below `GoRules.Zen`** (`heavy-map-1k` 61 KB vs 166 KB managed-side). Native
+  heap stays opaque.
+
+**Verdict:** the newer binding proves the official Rust engine is not inherently
+slow — most of the headline gap was `GoRules.Zen`'s async, no-precompile API. But a
+native binding can never skip the one thing a managed engine structurally avoids:
+serializing the context to cross the boundary. So managed pure-eval (context held as
+a live in-process object, zero per-call JSON) still wins, and `GoRules.ZenEngine` —
+for all its improvements — benchmarks like a *fast JSON path*, not like managed's
+pure path. ([`results/bench-full.txt`](results/bench-full.txt),
+[`results/heavy-bench.txt`](results/heavy-bench.txt),
+[`results/overhead.txt`](results/overhead.txt))
