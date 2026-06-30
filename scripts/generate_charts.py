@@ -180,11 +180,10 @@ grouped_bars(
     series=[
         ("Managed GC", MANAGED, [0, 0, 0, 0, 264, 552, 824]),
         ("Native heap (real)", NATIVE, [145, 140, 148, 142, 593, 833, 966]),
-        ("ZenEngine GC (native opaque)", ZENENGINE, [928, 968, 936, 976, 1040, 1960, 1960]),
     ],
     categories=SCENARIOS,
     title="Pure-eval memory per op — managed is 0 only for scalar expressions",
-    note="log scale · allocating expressions (right 3) do allocate on the managed hot path",
+    note="log scale · allocating expressions (right 3) do allocate on the managed hot path · all 4 engines' numbers in the table below",
     fmt=fmt_bytes, floor=1, fname="memory-pure.svg",
 )
 
@@ -193,7 +192,6 @@ grouped_bars(
     series=[
         ("Managed GC", MANAGED, [952, 1080, 11192, 5184, 832, 1760, 4640]),
         ("Native heap (real)", NATIVE, [1281, 1344, 8732, 5962, 1849, 2477, 4400]),
-        ("ZenEngine GC (native opaque)", ZENENGINE, [1008, 1104, 1416, 1208, 1136, 2040, 2088]),
     ],
     categories=SCENARIOS,
     title="JSON-eval memory per op — .NET metrics see only the green bar; native heap is hidden",
