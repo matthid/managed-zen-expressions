@@ -11,22 +11,22 @@
   libzen_ffi.so    (official native engine)        12,477.9 KB
   libcapstone.so   (official native dep)           6,713.0 KB
   GoRules.ZenEngine.dll (2nd official binding)     79.5 KB
-  libzen_uniffi.so (ZenEngine native engine)       12,419.5 KB
+  libzen_uniffi.so (ZenEngine native engine)       12,420.2 KB
 
 -- cold first-touch in THIS process (one-shot; JIT + lib load included) --
-  native dlopen (libzen_native)      :      105 µs
-  managed  cold compile              :     2.63 ms
-  managed  cold eval                 :     9.02 ms
-  native   cold compile (+first pin) :     0.81 ms
-  native   cold eval                 :     0.32 ms
-  GoRules  cold first call*          :    62.11 ms
+  native dlopen (libzen_native)      :      108 µs
+  managed  cold compile              :     2.69 ms
+  managed  cold eval                 :     8.92 ms
+  native   cold compile (+first pin) :     0.76 ms
+  native   cold eval                 :     0.36 ms
+  GoRules  cold first call*          :    59.69 ms
     * includes libzen_ffi dlopen + UniFFI init + JIT + thread-pool spawn
-  ZenEngine cold first call*         :     7.89 ms
+  ZenEngine cold first call*         :     7.32 ms
     * includes libzen_uniffi dlopen + JIT + first compiled-eval (synchronous)
 
 -- warm steady-state (median of 1000 evals; for context vs the cold figures) --
-  managed  warm eval :      732 ns
-  native   warm eval :      635 ns
-  GoRules  warm eval :     50.8 µs
-  ZenEngine warm eval :    1,723 ns
+  managed  warm eval :      412 ns
+  native   warm eval :      376 ns
+  GoRules  warm eval :      6.4 µs
+  ZenEngine warm eval :    1,576 ns
 

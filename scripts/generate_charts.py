@@ -150,24 +150,24 @@ def grouped_bars(series, categories, title, note, fmt, fname,
 # ---- pure-eval throughput (ns) ----
 grouped_bars(
     series=[
-        ("Managed (pure)", MANAGED, [143.5, 290.7, 2272.9, 2131.8, 294.0, 549.8, 1946.3]),
-        ("Native manual (pure)", NATIVE, [246.7, 341.1, 2294.4, 1760.7, 680.3, 1316.2, 3917.1]),
-        ("GoRules.Zen", GORULES, [3867.9, 6432.2, 65597.3, 67144.3, 4500.2, 9893.7, 15516.1]),
-        ("GoRules.ZenEngine", ZENENGINE, [1355.1, 1821.2, 8290.1, 5805.8, 1580.4, 3182.7, 5646.0]),
+        ("Managed (pure)", MANAGED, [132.0, 284.8, 2124.9, 2030.0, 302.0, 606.4, 1975.5]),
+        ("Native manual (pure)", NATIVE, [247.8, 333.8, 2070.1, 1786.9, 682.3, 1853.9, 3997.4]),
+        ("GoRules.Zen", GORULES, [3715.5, 6571.3, 59196.7, 62367.3, 4749.2, 36092.5, 21826.2]),
+        ("GoRules.ZenEngine", ZENENGINE, [1194.1, 1630.7, 8834.6, 5395.9, 1361.2, 3752.3, 6287.8]),
     ],
     categories=SCENARIOS,
     title="Evaluation throughput — compile-once / evaluate-many (pre-parsed context)",
-    note="log scale · lower is better · ZenEngine (compiled+sync) ~3-8x faster than GoRules.Zen, still trails managed",
+    note="log scale · lower is better · ZenEngine (compiled+sync) ~3-12x faster than GoRules.Zen, still trails managed",
     fmt=fmt_ns, fname="eval-pure.svg",
 )
 
 # ---- JSON-eval throughput (ns) ----
 grouped_bars(
     series=[
-        ("Managed (JSON)", MANAGED, [588.9, 990.3, 7606.1, 4611.7, 569.9, 983.8, 3181.2]),
-        ("Native manual (JSON)", NATIVE, [682.8, 1009.6, 9568.1, 4832.9, 1129.2, 1753.3, 4735.5]),
-        ("GoRules.Zen", GORULES, [4499.5, 6548.8, 73867.3, 67586.7, 5573.7, 11379.4, 48407.2]),
-        ("GoRules.ZenEngine", ZENENGINE, [1372.1, 1863.0, 8600.3, 5702.7, 1622.6, 3045.7, 5667.0]),
+        ("Managed (JSON)", MANAGED, [546.8, 978.4, 7083.7, 4409.3, 598.8, 1055.2, 3150.7]),
+        ("Native manual (JSON)", NATIVE, [656.6, 993.4, 9412.6, 4633.7, 1197.1, 1809.2, 4927.3]),
+        ("GoRules.Zen", GORULES, [4411.9, 7645.9, 63891.0, 65884.2, 5825.2, 32194.9, 26310.7]),
+        ("GoRules.ZenEngine", ZENENGINE, [1285.1, 1726.2, 8342.4, 5359.0, 1440.9, 2965.9, 6799.3]),
     ],
     categories=SCENARIOS,
     title="Evaluation throughput — JSON context per call (parse + eval)",
@@ -190,7 +190,7 @@ grouped_bars(
 # ---- memory: JSON-eval — the native-heap blind spot ----
 grouped_bars(
     series=[
-        ("Managed GC", MANAGED, [952, 1080, 11192, 5184, 832, 1760, 4640]),
+        ("Managed GC", MANAGED, [880, 1008, 11120, 5112, 760, 1128, 2040]),
         ("Native heap (real)", NATIVE, [1281, 1344, 8732, 5962, 1849, 2477, 4400]),
     ],
     categories=SCENARIOS,
@@ -238,7 +238,7 @@ grouped_bars(
 # ---- binary footprint per engine (KB) ----
 grouped_bars(
     series=[
-        ("Footprint shipped", MANAGED, [35, 591, 19228, 12499]),
+        ("Footprint shipped", MANAGED, [38.5, 556.6, 19227.4, 12499.7]),
     ],
     categories=["Managed", "Native (manual)", "GoRules.Zen", "GoRules.ZenEngine"],
     title="Binary footprint — what you ship per engine",
@@ -249,11 +249,11 @@ grouped_bars(
 # ---- cold first call per engine (ms) ----
 grouped_bars(
     series=[
-        ("Cold first call", MANAGED, [11.6, 0.4, 62.1, 7.9]),
+        ("Cold first call", MANAGED, [8.92, 0.36, 59.69, 7.32]),
     ],
     categories=["Managed", "Native (manual)", "GoRules.Zen", "GoRules.ZenEngine"],
     title="Cold first call (fresh process: lib load + JIT + first eval)",
-    note="log scale · GoRules.Zen ~62 ms (thread-pool); ZenEngine 7.9 ms (sync, beats managed JIT)",
+    note="log scale · GoRules.Zen ~60 ms (thread-pool); ZenEngine 7.3 ms (sync, beats managed JIT)",
     fmt=fmt_ms, fname="cold-start.svg", width=620, height=320,
 )
 
@@ -261,10 +261,10 @@ grouped_bars(
 HEAVY = ["sum-1k", "sum-map-1k", "arith-200", "filter-1k", "map-1k", "map-obj-100"]
 grouped_bars(
     series=[
-        ("Managed (pure)", MANAGED, [3.790, 75.685, 10.220, 56.775, 81.202, 32.987]),
-        ("Native (pure)", NATIVE, [2.894, 68.069, 9.653, 106.686, 197.319, 86.302]),
-        ("GoRules.Zen", GORULES, [157.837, 240.994, 133.050, 282.465, 413.071, 273.336]),
-        ("GoRules.ZenEngine", ZENENGINE, [52.055, 120.250, 31.969, 141.943, 231.940, 155.814]),
+        ("Managed (pure)", MANAGED, [3.733, 73.620, 9.262, 56.554, 77.821, 31.682]),
+        ("Native (pure)", NATIVE, [2.815, 69.174, 9.434, 98.081, 184.979, 78.319]),
+        ("GoRules.Zen", GORULES, [154.537, 229.508, 141.012, 269.371, 383.095, 251.153]),
+        ("GoRules.ZenEngine", ZENENGINE, [50.971, 139.080, 31.559, 162.836, 243.001, 146.661]),
     ],
     categories=HEAVY,
     title="Heavy load — pure-eval: ZenEngine parses context per call (~ties managed JSON); managed pure still leads",
@@ -275,10 +275,10 @@ grouped_bars(
 # ---- heavy-load crossover (JSON-eval, µs) ----
 grouped_bars(
     series=[
-        ("Managed (JSON)", MANAGED, [53.137, 121.176, 33.330, 110.986, 127.745, 55.649]),
-        ("Native (JSON)", NATIVE, [25.189, 93.628, 56.707, 125.139, 217.051, 127.220]),
-        ("GoRules.Zen", GORULES, [183.361, 273.471, 141.676, 323.028, 433.900, 295.601]),
-        ("GoRules.ZenEngine", ZENENGINE, [51.333, 123.192, 32.911, 140.721, 228.029, 162.131]),
+        ("Managed (JSON)", MANAGED, [50.950, 116.531, 29.529, 101.458, 131.256, 56.696]),
+        ("Native (JSON)", NATIVE, [24.085, 89.891, 53.034, 116.793, 202.177, 118.224]),
+        ("GoRules.Zen", GORULES, [177.231, 247.859, 141.739, 304.704, 417.552, 277.981]),
+        ("GoRules.ZenEngine", ZENENGINE, [49.801, 142.354, 32.831, 155.811, 261.358, 148.853]),
     ],
     categories=HEAVY,
     title="Heavy load — JSON per call: native leads when allocation stays native + scalar returns",

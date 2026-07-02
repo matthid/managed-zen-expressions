@@ -9,11 +9,11 @@
   --------------------------------------------------------------------------------
   simple-few pure                    0           145           145                
   simple-few json (managed)           880         1,281         2,161                
-  simple-few json (GoRules)           787             -           787native opaque   
+  simple-few json (GoRules)           775             -           775native opaque   
   simple-few zenengine (compiled)           928             -           928native opaque   
   complex-few pure                   0           140           140                
   complex-few json (managed)         1,008         1,344         2,352                
-  complex-few json (GoRules)         1,060             -         1,060native opaque   
+  complex-few json (GoRules)         1,080             -         1,080native opaque   
   complex-few zenengine (compiled)           968             -           968native opaque   
   simple-many pure                   0           148           148                
   simple-many json (managed)        11,120         8,732        19,852                
@@ -21,19 +21,19 @@
   simple-many zenengine (compiled)           936             -           936native opaque   
   complex-many pure                  0           142           142                
   complex-many json (managed)         5,112         5,962        11,074                
-  complex-many json (GoRules)         1,633             -         1,633native opaque   
+  complex-many json (GoRules)         1,631             -         1,631native opaque   
   complex-many zenengine (compiled)           976             -           976native opaque   
   alloc-array pure                 824           966         1,790                
   alloc-array json (managed)         2,040         4,400         6,440                
-  alloc-array json (GoRules)         4,788             -         4,788native opaque   
+  alloc-array json (GoRules)         4,768             -         4,768native opaque   
   alloc-array zenengine (compiled)         1,960             -         1,960native opaque   
   alloc-object pure                552           833         1,385                
   alloc-object json (managed)         1,128         2,477         3,605                
-  alloc-object json (GoRules)         2,002             -         2,002native opaque   
+  alloc-object json (GoRules)         1,996             -         1,996native opaque   
   alloc-object zenengine (compiled)         1,960             -         1,960native opaque   
   alloc-string pure                264           593           857                
   alloc-string json (managed)           760         1,849         2,609                
-  alloc-string json (GoRules)           979             -           979native opaque   
+  alloc-string json (GoRules)           977             -           977native opaque   
   alloc-string zenengine (compiled)         1,040             -         1,040native opaque   
   heavy-sum-1k pure                  0           150           150                
   heavy-sum-1k json (managed)        40,368        82,734       123,102                

@@ -5,48 +5,48 @@
 <text x="56" y="338.0" text-anchor="end" font-size="11" fill="#666666">1 B</text>
 <line x1="64" y1="265.3" x2="964" y2="265.3" stroke="#dddddd" stroke-width="1"/>
 <text x="56" y="269.3" text-anchor="end" font-size="11" fill="#666666">10 B</text>
-<line x1="64" y1="196.7" x2="964" y2="196.7" stroke="#dddddd" stroke-width="1"/>
-<text x="56" y="200.7" text-anchor="end" font-size="11" fill="#666666">100 B</text>
-<line x1="64" y1="128.0" x2="964" y2="128.0" stroke="#dddddd" stroke-width="1"/>
-<text x="56" y="132.0" text-anchor="end" font-size="11" fill="#666666">1000 B</text>
-<line x1="64" y1="59.4" x2="964" y2="59.4" stroke="#dddddd" stroke-width="1"/>
-<text x="56" y="63.4" text-anchor="end" font-size="11" fill="#666666">9.8 KB</text>
-<line x1="64" y1="-9.3" x2="964" y2="-9.3" stroke="#dddddd" stroke-width="1"/>
-<text x="56" y="-5.3" text-anchor="end" font-size="11" fill="#666666">97.7 KB</text>
-<rect x="78.1" y="129.5" width="43.1" height="204.5" fill="#2ca02c" rx="1.5"/>
-<text x="99.7" y="125.5" text-anchor="middle" font-size="9" fill="#222222">952 B</text>
-<rect x="128.3" y="120.6" width="43.1" height="213.4" fill="#1f77b4" rx="1.5"/>
-<text x="149.8" y="116.6" text-anchor="middle" font-size="9" fill="#222222">1.3 KB</text>
+<line x1="64" y1="196.6" x2="964" y2="196.6" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="200.6" text-anchor="end" font-size="11" fill="#666666">100 B</text>
+<line x1="64" y1="127.9" x2="964" y2="127.9" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="131.9" text-anchor="end" font-size="11" fill="#666666">1000 B</text>
+<line x1="64" y1="59.2" x2="964" y2="59.2" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="63.2" text-anchor="end" font-size="11" fill="#666666">9.8 KB</text>
+<line x1="64" y1="-9.5" x2="964" y2="-9.5" stroke="#dddddd" stroke-width="1"/>
+<text x="56" y="-5.5" text-anchor="end" font-size="11" fill="#666666">97.7 KB</text>
+<rect x="78.1" y="131.7" width="43.1" height="202.3" fill="#2ca02c" rx="1.5"/>
+<text x="99.7" y="127.7" text-anchor="middle" font-size="9" fill="#222222">880 B</text>
+<rect x="128.3" y="120.5" width="43.1" height="213.5" fill="#1f77b4" rx="1.5"/>
+<text x="149.8" y="116.5" text-anchor="middle" font-size="9" fill="#222222">1.3 KB</text>
 <text x="128.3" y="352.0" text-anchor="middle" font-size="11" fill="#222222">simple-few</text>
-<rect x="206.7" y="125.7" width="43.1" height="208.3" fill="#2ca02c" rx="1.5"/>
-<text x="228.3" y="121.7" text-anchor="middle" font-size="9" fill="#222222">1.1 KB</text>
-<rect x="256.9" y="119.2" width="43.1" height="214.8" fill="#1f77b4" rx="1.5"/>
-<text x="278.4" y="115.2" text-anchor="middle" font-size="9" fill="#222222">1.3 KB</text>
+<rect x="206.7" y="127.6" width="43.1" height="206.4" fill="#2ca02c" rx="1.5"/>
+<text x="228.3" y="123.6" text-anchor="middle" font-size="9" fill="#222222">1008 B</text>
+<rect x="256.9" y="119.1" width="43.1" height="214.9" fill="#1f77b4" rx="1.5"/>
+<text x="278.4" y="115.1" text-anchor="middle" font-size="9" fill="#222222">1.3 KB</text>
 <text x="256.9" y="352.0" text-anchor="middle" font-size="11" fill="#222222">complex-few</text>
 <rect x="335.3" y="56.0" width="43.1" height="278.0" fill="#2ca02c" rx="1.5"/>
 <text x="356.8" y="52.0" text-anchor="middle" font-size="9" fill="#222222">10.9 KB</text>
-<rect x="385.4" y="63.4" width="43.1" height="270.6" fill="#1f77b4" rx="1.5"/>
-<text x="407.0" y="59.4" text-anchor="middle" font-size="9" fill="#222222">8.5 KB</text>
+<rect x="385.4" y="63.2" width="43.1" height="270.8" fill="#1f77b4" rx="1.5"/>
+<text x="407.0" y="59.2" text-anchor="middle" font-size="9" fill="#222222">8.5 KB</text>
 <text x="385.4" y="352.0" text-anchor="middle" font-size="11" fill="#222222">simple-many</text>
-<rect x="463.9" y="78.9" width="43.1" height="255.1" fill="#2ca02c" rx="1.5"/>
-<text x="485.4" y="74.9" text-anchor="middle" font-size="9" fill="#222222">5.1 KB</text>
-<rect x="514.0" y="74.8" width="43.1" height="259.2" fill="#1f77b4" rx="1.5"/>
-<text x="535.6" y="70.8" text-anchor="middle" font-size="9" fill="#222222">5.8 KB</text>
+<rect x="463.9" y="79.2" width="43.1" height="254.8" fill="#2ca02c" rx="1.5"/>
+<text x="485.4" y="75.2" text-anchor="middle" font-size="9" fill="#222222">5.0 KB</text>
+<rect x="514.0" y="74.6" width="43.1" height="259.4" fill="#1f77b4" rx="1.5"/>
+<text x="535.6" y="70.6" text-anchor="middle" font-size="9" fill="#222222">5.8 KB</text>
 <text x="514.0" y="352.0" text-anchor="middle" font-size="11" fill="#222222">complex-many</text>
-<rect x="592.4" y="133.5" width="43.1" height="200.5" fill="#2ca02c" rx="1.5"/>
-<text x="614.0" y="129.5" text-anchor="middle" font-size="9" fill="#222222">832 B</text>
-<rect x="642.6" y="109.7" width="43.1" height="224.3" fill="#1f77b4" rx="1.5"/>
-<text x="664.1" y="105.7" text-anchor="middle" font-size="9" fill="#222222">1.8 KB</text>
+<rect x="592.4" y="136.1" width="43.1" height="197.9" fill="#2ca02c" rx="1.5"/>
+<text x="614.0" y="132.1" text-anchor="middle" font-size="9" fill="#222222">760 B</text>
+<rect x="642.6" y="109.5" width="43.1" height="224.5" fill="#1f77b4" rx="1.5"/>
+<text x="664.1" y="105.5" text-anchor="middle" font-size="9" fill="#222222">1.8 KB</text>
 <text x="642.6" y="352.0" text-anchor="middle" font-size="11" fill="#222222">alloc-string</text>
-<rect x="721.0" y="111.2" width="43.1" height="222.8" fill="#2ca02c" rx="1.5"/>
-<text x="742.6" y="107.2" text-anchor="middle" font-size="9" fill="#222222">1.7 KB</text>
-<rect x="771.1" y="101.0" width="43.1" height="233.0" fill="#1f77b4" rx="1.5"/>
-<text x="792.7" y="97.0" text-anchor="middle" font-size="9" fill="#222222">2.4 KB</text>
+<rect x="721.0" y="124.3" width="43.1" height="209.7" fill="#2ca02c" rx="1.5"/>
+<text x="742.6" y="120.3" text-anchor="middle" font-size="9" fill="#222222">1.1 KB</text>
+<rect x="771.1" y="100.8" width="43.1" height="233.2" fill="#1f77b4" rx="1.5"/>
+<text x="792.7" y="96.8" text-anchor="middle" font-size="9" fill="#222222">2.4 KB</text>
 <text x="771.1" y="352.0" text-anchor="middle" font-size="11" fill="#222222">alloc-object</text>
-<rect x="849.6" y="82.3" width="43.1" height="251.7" fill="#2ca02c" rx="1.5"/>
-<text x="871.1" y="78.3" text-anchor="middle" font-size="9" fill="#222222">4.5 KB</text>
-<rect x="899.7" y="83.8" width="43.1" height="250.2" fill="#1f77b4" rx="1.5"/>
-<text x="921.3" y="79.8" text-anchor="middle" font-size="9" fill="#222222">4.3 KB</text>
+<rect x="849.6" y="106.6" width="43.1" height="227.4" fill="#2ca02c" rx="1.5"/>
+<text x="871.1" y="102.6" text-anchor="middle" font-size="9" fill="#222222">2.0 KB</text>
+<rect x="899.7" y="83.7" width="43.1" height="250.3" fill="#1f77b4" rx="1.5"/>
+<text x="921.3" y="79.7" text-anchor="middle" font-size="9" fill="#222222">4.3 KB</text>
 <text x="899.7" y="352.0" text-anchor="middle" font-size="11" fill="#222222">alloc-array</text>
 <line x1="64" y1="334" x2="964" y2="334" stroke="#222222" stroke-width="1.2"/>
 <rect x="64" y="393" width="14" height="14" fill="#2ca02c" rx="2"/>

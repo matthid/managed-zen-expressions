@@ -3,7 +3,7 @@ using Zen.Managed;
 namespace Zen.ZenEngine;
 
 /// <summary>
-/// Adapter over the official <c>GoRules.ZenEngine</c> package (NuGet 0.5.0) — a
+/// Adapter over the official <c>GoRules.ZenEngine</c> package (NuGet 0.7.2) — a
 /// second .NET binding of the same native Rust ZEN core as <c>GoRules.Zen</c>,
 /// but with a materially different API. Where <c>GoRules.Zen.ZenExpression</c>
 /// exposes only an async one-shot <c>Evaluate&lt;T&gt;(expr, context)</c> that
